@@ -49,17 +49,18 @@ def non_neg(recovery_costs, config):
 
     return True
 
+# Return a new recovery_cost vector, with the config vector applied. Assumes the 
+# config vector is valid for the current recovery_cost (i.e. non_neg is true)
 def apply_config(recovery_cost, config):
     return [recovery_cost[i] - config[i] for i in range(len(config))]
 
+# Helper class for creating a tree of possible recovery outcomes
 class Node:
     def __init__(self, vec):
         self.vec = vec
         self.children = []
 
-# given a vector [v1, v2, ..., vn] of vertices, where v1 corresponds to
-# the amount of resources needed for v1 to come back online, we return
-# every possible recovery configuration at a single time t given resources r.
+# Returns a recursively defined tree of possible, pruned recovery configurations
 def iterate_over_failures(recovery_costs, r):
     if all_zeros(recovery_costs):
         leaf = Node(-1)
@@ -84,12 +85,14 @@ def iterate_over_failures(recovery_costs, r):
 
     return children
 
-# given a root node, return all possible paths to leaves
+# print out all possible paths from a root to every leaf node
+# dfs with backtracking
 def root_to_leaves(root):
     # so we don't print out root, we handle it separately
     for child in root.children:
         recurse(child, [], 0)
 
+# recursive helper function 
 def recurse(node, path, pathLen):
     if node.vec is -1:
         return
@@ -110,6 +113,7 @@ def recurse(node, path, pathLen):
         for child in node.children:
             recurse(child, newPath, pathLen)
         return
+
 
 def main():
     test_costs = [5, 3, 1]
