@@ -16,10 +16,11 @@ def simulate_recovery(G, costs, config):
 def main():
     G = read_gml('gml/DIGEX.gml')
 
-    test_costs = [2, 2, 2, 2]
+    test_costs = [2, 2, 2, 2, 0, 0]
     root = iterate_over_failures(test_costs, 1) 
     all_paths = root_to_leaves(root)
     print(all_paths)
+    print(len(all_paths))
 
     nx.draw(G)
     plt.draw()
