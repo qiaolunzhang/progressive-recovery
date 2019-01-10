@@ -1,5 +1,6 @@
 import time
 
+
 # returns true if every element in an arr is zero
 def all_zeros(arr):
     zeros = True

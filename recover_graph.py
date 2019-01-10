@@ -85,7 +85,7 @@ def main():
 
     test_costs = [5, 2, 3, 1, 0, 4]
     #test_costs = [2, 2, 2, 2, 0, 0]
-    root = iterate_over_failures(test_costs, 1)
+    root = iterate_over_failures(test_costs, 2)
     all_paths = root_to_leaves(root)
 
     #print(all_paths)
