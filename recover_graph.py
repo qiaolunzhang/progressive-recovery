@@ -65,6 +65,7 @@ def simulate_recovery(G, config):
     util = 0 
  
     for step in config:
+        # remove the resources from rcv_amounts
         for index in range(len(step)):
             rcv_amts[index] -= step[index]
 

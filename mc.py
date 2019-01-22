@@ -210,7 +210,7 @@ if __name__ == '__main__':
   Vx = initialV_x(env, state_pairs)
   player.setV(Vx)
 
-  T = 20001 
+  T = 20001
   print(player.V)
   for t in range(T):
       display=False
