@@ -6,6 +6,7 @@ import random
 import operator
 import os, shutil
 
+#random.seed(1)
 # Generates a random tree, with random utility and demand for each node
 # Note: we don't use random_tree for this function name since that is
 # a networkx function call.
@@ -54,14 +55,37 @@ def merge_nodes(H, root, v):
 
     return G
 
-def plot_graph(G, dir):
+def plot_graph(G, root, dir, pos=None):
     value = nx.get_node_attributes(G, 'value')
-    nx.draw(G, with_labels=True, labels=value, node_size=1000)
+    utils = nx.get_node_attributes(G, 'util')
+    demand = nx.get_node_attributes(G, 'demand')
+
+    # Create a [utils, demand] label for each node
+    labels = {}
+    for (k,v), (k2,v2) in zip(utils.items(), demand.items()):
+        labels[k] = [v, v2]
+
+    # color the root node
+    color = []
+    for node in G:
+        if node != root:
+            color.append('green')
+        else:
+            color.append('red')
+    
+    # fix the position to be consistent across all graphs
+    if pos is None:
+        pos = nx.spring_layout(G)
+    
+    nx.draw(G, with_labels=True, labels=labels, node_size=1500, node_color=color, pos=pos)
+
     plt.draw()
     plt.savefig(dir)
 
     # clear the plt to not retain the graph next time we wanna plot
     plt.clf()
+
+    return pos
 
 # Simulates recover of a tree, starting at the root (independent) node. Assumes
 # that all other nodes are dependent and therefore to optimally recover, we 
@@ -102,30 +126,33 @@ def simulate_tree_recovery(G, resources):
     H = G.copy()
     # iteration counter for saving intermediate graphs
     i = 0
-    plot_graph(H, folder + '/{}.png'.format(i))
+    pos = plot_graph(H, root, folder + '/{}.png'.format(i))
+
     while H.number_of_nodes() > 1:
         print('Current utility: ', current_utility, 'Total utility: ', total_utility)
         neighbors = H.neighbors(root)
+        
         possible_recovery = {}
         for neighbor in neighbors:
             # first create an unconnected component
-            H.remove_edge(root, neighbor)
+            print(neighbor, [utils[neighbor], demand[neighbor]])
+            test_graph = H.copy()
+            test_graph.remove_edge(root, neighbor)
+
             # Now get the nodes of the subgraph in the unconnected component we just created
             # (Not including the root)
-            subgraph_nodes = nx.node_connected_component(H, neighbor)
-            subgraph_value = evaluate_total_value(H.subgraph(subgraph_nodes))
+            subgraph_nodes = nx.node_connected_component(test_graph, neighbor)
+            subgraph_value = evaluate_total_value(test_graph.subgraph(subgraph_nodes))
 
             # update our possible move list with the value of the move if we recover this node
             possible_recovery.update({neighbor: subgraph_value})
-            # now restore the edge we removed
-            H.add_edge(root, neighbor)
 
         print(possible_recovery)
         i += 1
 
         # choose the best move (look how pythonic this is)
         recovery_node = max(possible_recovery.items(), key=operator.itemgetter(1))[0]
-        print('Recovering node: ', recovery_node)
+        print('Recovering node: ', recovery_node, [utils[recovery_node], demand[recovery_node]])
 
         if remaining_resources != 0:
             resources_this_turn = remaining_resources
@@ -146,7 +173,7 @@ def simulate_tree_recovery(G, resources):
             demand[recovery_node] = 0
             current_utility += utils[recovery_node]
             H = merge_nodes(H, root, recovery_node)
-            plot_graph(H, folder + '/{0}.png'.format(i))
+            plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
             continue
 
         # otherwise, we have equal resources as demand at that node
@@ -156,7 +183,7 @@ def simulate_tree_recovery(G, resources):
 
         # now we merge the node we recovered with our root node
         H = merge_nodes(H, root, recovery_node)
-        plot_graph(H, folder + '/{0}.png'.format(i))
+        plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
 
         # increment total utility
         total_utility += current_utility
@@ -166,7 +193,7 @@ def simulate_tree_recovery(G, resources):
 
 def main():
     # Number of nodes in the random tree
-    nodes = 7; draw = True
+    nodes = 8; draw = True
     G = r_tree(nodes, draw)
     
     # debug printing node util and demand values
