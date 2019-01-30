@@ -51,7 +51,6 @@ def merge_nodes(H, root, v):
 
 # plots a graph with some features, saves it in dir
 def plot_graph(G, root, dir, pos=None):
-    income = nx.get_node_attributes(G, 'income')
     utils = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
 
@@ -89,9 +88,9 @@ def plot_graph(G, root, dir, pos=None):
 # ===============================================================================
 # Assumptions: Each node in the networkx graph G has the attributes:
 # income, util, and demand. Resources: amount of resources per recovery iteration.
-def simulate_tree_recovery(G, resources):
+def simulate_tree_recovery(G, resources, draw=False):
     # clean image dir
-    folder = 'trees'
+    folder = 'plots/trees'
     for the_file in os.listdir(folder):
         file_path = os.path.join(folder, the_file)
         try:
@@ -126,7 +125,8 @@ def simulate_tree_recovery(G, resources):
 
     # Create the initial graph, noting all the positions of the nodes (pos) so that we may
     # represent it in the same orientation for sequential graphs
-    pos = plot_graph(H, root, folder + '/{}.png'.format(i))
+    if draw:
+        pos = plot_graph(H, root, folder + '/{}.png'.format(i))
 
     while H.number_of_nodes() > 1:
         print('Current utility: ', current_utility, 'Total utility: ', total_utility)
@@ -181,7 +181,8 @@ def simulate_tree_recovery(G, resources):
             demand[recovery_node] = 0
             current_utility += utils[recovery_node]
             H = merge_nodes(H, root, recovery_node)
-            plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
+            if draw:
+                plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
             continue
 
         # otherwise, we have equal resources and demand, so apply all resources and continue
@@ -191,7 +192,8 @@ def simulate_tree_recovery(G, resources):
 
         # now we merge the node we recovered with our root node
         H = merge_nodes(H, root, recovery_node)
-        plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
+        if draw:
+            plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
 
         # increment total utility
         total_utility += current_utility
@@ -201,7 +203,7 @@ def simulate_tree_recovery(G, resources):
 
 def main():
     # Number of nodes in the random tree
-    nodes = 8
+    nodes = 8; draw = True
     G = r_tree(nodes)
     
     # debug printing node util and demand values
@@ -210,7 +212,7 @@ def main():
     for node in G.nodes:
         print(node, utils[node], demand[node])
 
-    simulate_tree_recovery(G, 1)
+    simulate_tree_recovery(G, 1, draw)
 
 if __name__ == "__main__":
     main()

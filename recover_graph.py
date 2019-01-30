@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+from tree_recovery import plot_graph
 from prog import iterate_over_failures, root_to_leaves
 
 def read_gml(path):
@@ -16,12 +17,12 @@ def sample_graph(recovery_cost):
     G = nx.Graph()
 
     utils = {}
-    rcv_amts = {}
+    demands = {}
 
     for node in range(len(recovery_cost)):
         G.add_node(node)
         utils.update({node: 1.0})
-        rcv_amts.update({node: recovery_cost[node]})
+        demands.update({node: recovery_cost[node]})
     
     # generate random graph with (n-1) <= x <= n(n-1)/2
     # n(n-1) / 2 ensures the final graph will be fully connected (+ 1 is for exclusion in python)
@@ -53,32 +54,33 @@ def sample_graph(recovery_cost):
     ''' 
 
     nx.set_node_attributes(G, name='util', values=utils)
-    nx.set_node_attributes(G, name='rcv_amt', values=rcv_amts)
+    nx.set_node_attributes(G, name='demand', values=demands)
     
+    tree_recovery.plot_graph(G, 1, 'plots/recovery_graphs/1.png')
     return G
 
 # given a graph G and the cost to recover a node in G (costs), 
 # we apply a recovery confiugration (config) and return the total system utility
 def simulate_recovery(G, config):
     H = G.copy()
-    rcv_amts = nx.get_node_attributes(H, name='rcv_amt')
+    demands = nx.get_node_attributes(H, name='demand')
     util = 0 
  
     for step in config:
         # remove the resources from rcv_amounts
         for index in range(len(step)):
-            rcv_amts[index] -= step[index]
+            demands[index] -= step[index]
 
         # create a new subgraph H, which is G with all nodes where
         # recovery != 0 are removed
         H = G.copy()
         for node in G:
-            if rcv_amts[node] > 0:
+            if demands[node] > 0:
                 H.remove_node(node)
 
         # The largest connected component in H is our utility at t
         util += len(max(nx.connected_components(H), key=len))
-         
+
     return util
 
 def main():
