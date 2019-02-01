@@ -5,6 +5,11 @@ import numpy as np
 import random
 import operator
 import os, shutil
+import itertools
+import time
+import sys
+from progress.bar import Bar
+import math
 
 # Generates a random tree, with random utility and demand for each node
 def r_tree(nodes):
@@ -57,7 +62,7 @@ def plot_graph(G, root, dir, pos=None):
     # Create a [utils, demand] label for each node
     labels = {}
     for (k,v), (k2,v2) in zip(utils.items(), demand.items()):
-        labels[k] = [v, v2]
+        labels[k] = ['n{0}'.format(k), v, v2]
 
     # color the root node red, all other nodes green
     color = []
@@ -88,6 +93,7 @@ def plot_graph(G, root, dir, pos=None):
 # ===============================================================================
 # Assumptions: Each node in the networkx graph G has the attributes:
 # income, util, and demand. Resources: amount of resources per recovery iteration.
+# returns the root (starting independent node) of recovery
 def simulate_tree_recovery(G, resources, draw=False):
     # clean image dir
     folder = 'plots/trees'
@@ -199,20 +205,83 @@ def simulate_tree_recovery(G, resources, draw=False):
         total_utility += current_utility
 
     print(total_utility)
+    return root
 
+# calculates the maximum utility possible from recovering a tree
+def max_util(G, resources, root):
+    number_of_nodes = G.number_of_nodes()
+    # create all possible node recovery orders
+    recovery_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
+    # prune all recovery configurations that don't begin with root
+    recovery_permutations = [config for config in recovery_permutations if config[0] == root]
+    # prune configs that aren't neighbors of nodes already recovered
+    pruned_configs = []
+    for config in recovery_permutations:
+        false_config = False
+        # iterate through all indices in that particular config
+        for node_index in range(1, len(config)):
+            # for each index, check if it is a neighbor of at least one node already recovered
+            neighbors = [n for n in G.neighbors(config[node_index])]
+            # compute the intersection between the recovered nodes and the neighbors of the node
+            # at the current index. If this intersection is null, it is a provably suboptimal 
+            # recovery configuration, so we drop it.
+            intersection = list(set(config[:node_index]).intersection(neighbors))
+            if not intersection:
+                false_config = True
+                break
+
+        # if every such left-node-slice is not sub-optimal, we add it to the set
+        if not false_config:   
+            pruned_configs.append(config)
+
+    return (len(pruned_configs), len(recovery_permutations))
+
+# Calculate how much pruning reduces the solution space by iterating through random graphs
+# and marking mean, std for the amount pruned
+def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
+    average_pruning = []
+    toolbar_width = graphs_per_range
+    resources = 1
+
+    # generate 1000 random graphs, compare on average how much we can prune
+    for size in range(node_range_x, node_range_y):
+        bar = Bar('Processing', max=graphs_per_range)
+        current_size = []
+        for graph_num in range(graphs_per_range):
+            G = r_tree(size)
+            # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
+            degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
+            # choose root as highest degree node (may not be unique)
+            root = degrees[0][0]
+
+            pruned, not_pruned = max_util(G, resources, root)
+            current_size.append(not_pruned - pruned)
+            bar.next()
+        stats_tuple = ((np.mean(current_size), np.std(current_size)))
+        average_pruning.append(stats_tuple)
+        bar.finish()
+        unpruned = math.factorial(size)
+        print('Average reduction percentage:', stats_tuple[0] / unpruned)
+        print('unpruned', unpruned, '\naverage node reduction:', stats_tuple[0], '\nwith std', stats_tuple[1])
+        print(size, 'node complete\n')
+
+    return average_pruning
 
 def main():
     # Number of nodes in the random tree
-    nodes = 8; draw = True
+    nodes = 8; draw = True; resources = 1;
     G = r_tree(nodes)
     
-    # debug printing node util and demand values
-    utils = nx.get_node_attributes(G, 'util')
-    demand = nx.get_node_attributes(G, 'demand')
-    for node in G.nodes:
-        print(node, utils[node], demand[node])
+    # # debug printing node util and demand values
+    # utils = nx.get_node_attributes(G, 'util')
+    # demand = nx.get_node_attributes(G, 'demand')
+    # for node in G.nodes:
+    #     print(node, utils[node], demand[node])
 
-    simulate_tree_recovery(G, 1, draw)
+    #root = simulate_tree_recovery(G, resources, draw)
+    #pruned, not_pruned = max_util(G, resources, root)
+
+    average_pruning = calc_pruning_stats(5, 15, 1000)
 
 if __name__ == "__main__":
     main()

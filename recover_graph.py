@@ -83,11 +83,28 @@ def simulate_recovery(G, config):
 
     return util
 
-def main():
-    G = read_gml('gml/DIGEX.gml')
+def max_util(G):
+    test_costs = [2, 2, 2, 2, 0, 0]
+    root = iterate_over_failures(test_costs, 2)
+    all_paths = root_to_leaves(root)
 
-    test_costs = [5, 2, 3, 1, 0, 4]
-    #test_costs = [2, 2, 2, 2, 0, 0]
+    #print(all_paths)
+    #print(len(all_paths))
+   
+    utils = []
+    G = sample_graph(test_costs)
+
+    for path in all_paths:
+        utils.append(simulate_recovery(G, path))
+
+    print(utils)
+    print(max(utils))
+
+def main():
+    # G = read_gml('gml/DIGEX.gml')
+
+    # test_costs = [5, 2, 3, 1, 0, 4]
+    test_costs = [2, 2, 2, 2, 0, 0]
     root = iterate_over_failures(test_costs, 2)
     all_paths = root_to_leaves(root)
 
