@@ -281,7 +281,32 @@ def main():
     #root = simulate_tree_recovery(G, resources, draw)
     #pruned, not_pruned = max_util(G, resources, root)
 
-    average_pruning = calc_pruning_stats(5, 15, 1000)
+    start_size = 5; end_size = 9;
+    average_pruning = calc_pruning_stats(start_size, end_size, 1000)
+
+    labels = ['{0} Nodes'.format(x) for x in range(start_size, end_size)]
+    average = np.array([d[0] for d in average_pruning])
+    std = np.array([d[1] for d in average_pruning])
+    iter_ = 0
+    for x in range(start_size, end_size):
+        average[iter_] = average[iter_] / math.factorial(x)
+        std[iter_] = std[iter_] / math.factorial(x)
+        iter_ += 1
+
+    fig, ax = plt.subplots()
+    ax.bar(np.arange(len(labels)), average, yerr=std, align='center', alpha=0.5, ecolor='black', capsize=10)
+
+    ax.set_ylabel('% of Recovery Configurations Pruned \n (Start with n! configurations)')
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels)
+    ax.set_title('Number of Nodes in Graph')
+    ax.yaxis.grid(True)
+
+    # Save the figure and show
+    plt.tight_layout()
+
+    plt.savefig('plots/pruning_data.png')
+
 
 if __name__ == "__main__":
     main()
