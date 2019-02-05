@@ -281,7 +281,7 @@ def main():
     #root = simulate_tree_recovery(G, resources, draw)
     #pruned, not_pruned = max_util(G, resources, root)
 
-    start_size = 5; end_size = 9;
+    start_size = 5; end_size = 8;
     average_pruning = calc_pruning_stats(start_size, end_size, 1000)
 
     labels = ['{0} Nodes'.format(x) for x in range(start_size, end_size)]
@@ -299,7 +299,7 @@ def main():
     ax.set_ylabel('% of Recovery Configurations Pruned \n (Start with n! configurations)')
     ax.set_xticks(np.arange(len(labels)))
     ax.set_xticklabels(labels)
-    ax.set_title('Number of Nodes in Graph')
+    ax.set_title('Average Pruning for Random Trees of Size N')
     ax.yaxis.grid(True)
 
     # Save the figure and show
