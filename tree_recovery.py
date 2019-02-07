@@ -86,6 +86,18 @@ def plot_graph(G, root, dir, pos=None):
 
     return pos
 
+def get_root(G):
+    """
+    @param G: networkx Graph
+    return: root of graph
+    """
+    # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
+    degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
+    # choose root as highest degree node (may not be unique)
+    root = degrees[0][0]
+
+    return root
+
 # Simulates recover of a tree, starting at the root (independent) node. Assumes
 # that all other nodes are dependent and therefore to optimally recover, we 
 # branch out from the root. Our algorithm works by "merging" any recovered nodes
@@ -113,10 +125,7 @@ def simulate_tree_recovery(G, resources, draw=False):
     demand = nx.get_node_attributes(G, 'demand')
     utils = nx.get_node_attributes(G, 'util')
 
-    # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
-    degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
-    # choose root as highest degree node (may not be unique)
-    root = degrees[0][0]
+    root = get_root(G)
 
     # DEBUG
     # print('Root node income: ', utils[root] - demand[root])
@@ -211,9 +220,9 @@ def simulate_tree_recovery(G, resources, draw=False):
 def max_util(G, resources, root):
     number_of_nodes = G.number_of_nodes()
     # create all possible node recovery orders
-    recovery_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
+    all_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
     # prune all recovery configurations that don't begin with root
-    recovery_permutations = [config for config in recovery_permutations if config[0] == root]
+    recovery_permutations = [config for config in all_permutations if config[0] == root]
     # prune configs that aren't neighbors of nodes already recovered
     pruned_configs = []
     for config in recovery_permutations:
@@ -234,7 +243,7 @@ def max_util(G, resources, root):
         if not false_config:   
             pruned_configs.append(config)
 
-    return (len(pruned_configs), len(recovery_permutations))
+    return (len(pruned_configs), len(all_permutations))
 
 # Calculate how much pruning reduces the solution space by iterating through random graphs
 # and marking mean, std for the amount pruned
@@ -249,10 +258,7 @@ def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
         current_size = []
         for graph_num in range(graphs_per_range):
             G = r_tree(size)
-            # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
-            degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
-            # choose root as highest degree node (may not be unique)
-            root = degrees[0][0]
+            root = get_root(G)
 
             pruned, not_pruned = max_util(G, resources, root)
             current_size.append(not_pruned - pruned)
@@ -267,20 +273,8 @@ def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
 
     return average_pruning
 
-def main():
-    # Number of nodes in the random tree
-    nodes = 8; draw = True; resources = 1;
-    G = r_tree(nodes)
-    
-    # # debug printing node util and demand values
-    # utils = nx.get_node_attributes(G, 'util')
-    # demand = nx.get_node_attributes(G, 'demand')
-    # for node in G.nodes:
-    #     print(node, utils[node], demand[node])
-
-    #root = simulate_tree_recovery(G, resources, draw)
-    #pruned, not_pruned = max_util(G, resources, root)
-
+# temp function
+def graph_pruning_stats():
     start_size = 5; end_size = 8;
     average_pruning = calc_pruning_stats(start_size, end_size, 1000)
 
@@ -304,9 +298,74 @@ def main():
 
     # Save the figure and show
     plt.tight_layout()
-
     plt.savefig('plots/pruning_data.png')
 
+def calc_height(G, root):
+    """
+    @param G: networkx graph
+    return: height of G assuming tree.
+    """
+    # dict of shortest path lengths
+    path_lengths = nx.shortest_path_length(G, root)
+
+    return max(path_lengths.values())
+
+def plot_bar_x(data, label, dir):
+    # this is for plotting purpose
+    index = np.arange(len(label))
+    plt.bar(index, data)
+    plt.xlabel('Genre', fontsize=5)
+    plt.ylabel('Avg. # of Pruned Configs', fontsize=5)
+    plt.xticks(index, label, fontsize=5, rotation=30)
+    plt.title('8 Node Tree Height v. Prunable Configurations')
+
+    rects = ax.patches
+
+    # Make some labels.
+    labels = ["label%d" % i for i in xrange(len(rects))]
+
+    for rect, label in zip(rects, labels):
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width() / 2, height + 5, label,
+                ha='center', va='bottom')
+
+    plt.savefig(dir)
+
+def main():
+    # Number of nodes in the random tree
+    nodes = 8; draw = True; resources = 1;
+    G = r_tree(nodes)
+    
+    # # debug printing node util and demand values
+    # utils = nx.get_node_attributes(G, 'util')
+    # demand = nx.get_node_attributes(G, 'demand')
+    # for node in G.nodes:
+    #     print(node, utils[node], demand[node])
+
+    #root = simulate_tree_recovery(G, resources, draw)
+    #pruned, not_pruned = max_util(G, resources, root)
+
+    height_stats = [[] for x in range(1, 8)]
+    for x in range(2500):
+        G = r_tree(nodes)
+        root = get_root(G)
+        height = calc_height(G, root)
+        height_stats[height].append(max_util(G, resources=1, root=root))
+
+    avg_pruning = []
+    for lst in height_stats:
+        if len(lst) == 0:
+            avg_pruning.append(0)
+            continue
+
+        avg = 0
+        for prune_pair in lst:
+            avg += prune_pair[0]
+        avg = avg / len(lst)
+        avg_pruning.append(avg)
+
+    print(avg_pruning)
+    plot_bar_x(avg_pruning, ['height {0}'.format(x) for x in range(len(avg_pruning))], 'plots/pruning.png')
 
 if __name__ == "__main__":
     main()
