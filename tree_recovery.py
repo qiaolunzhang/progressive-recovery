@@ -11,8 +11,13 @@ import sys
 from progress.bar import Bar
 import math
 
-# Generates a random tree, with random utility and demand for each node
 def r_tree(nodes):
+    '''
+    Generates a random tree, with random utility and demand for each node
+
+    :param int nodes: Number of nodes in the tree
+    :return: Random tree with len{V} = nodes
+    '''
     G = nx.random_tree(nodes)
     utils = {}
     demand = {}
@@ -32,9 +37,13 @@ def r_tree(nodes):
 
     return G
 
-# Given a graph (or subgraph) H, determines the total "income" of the graph.
-# That is, returns the sum over all nodes of [utilities - demand]
 def evaluate_total_income(H):
+    '''
+    Given a graph (or subgraph) H, determines the total "income" of the graph.
+
+    :param H: networkx graph
+    :return: total income of graph: the sum over all nodes of [utilities - demand]
+    '''
     incomes = nx.get_node_attributes(H, 'income')
     total_income = 0
     for node, node_income in incomes.items():
@@ -42,8 +51,15 @@ def evaluate_total_income(H):
 
     return total_income
 
-# merges two nodes in a given graph
 def merge_nodes(H, root, v):
+    '''
+    Merges two nodes in a given graph, returns a new one
+
+    :param H: networkx graph
+    :param root: root node to merge
+    :param v: node to merge with root
+    :return: new graph G, with V_H - 1 vertices and E_H or E_H - 1 edges.
+    '''
     G = H.copy()
     neighbors = G.neighbors(v)
     for node in neighbors:
@@ -54,8 +70,15 @@ def merge_nodes(H, root, v):
 
     return G
 
-# plots a graph with some features, saves it in dir
 def plot_graph(G, root, dir, pos=None):
+    '''
+    Plots a graph using pyplot, saves it in dir
+
+    :param G: networkx graph
+    :param root: Root node of graph. Colored red.
+    :param dir: Directory to save image
+    :param pos: Used to keep similar graph plot style across multiple plots. Dict of positions for each node.
+    '''
     utils = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
 
@@ -87,10 +110,12 @@ def plot_graph(G, root, dir, pos=None):
     return pos
 
 def get_root(G):
-    """
-    @param G: networkx Graph
-    return: root of graph
-    """
+    '''
+    Finds root of tree (node with highest degree). Not necessarily unique.
+
+    :param G: networkx Graph
+    :return: root of tree
+    '''
     # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
     degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
     # choose root as highest degree node (may not be unique)
@@ -98,15 +123,20 @@ def get_root(G):
 
     return root
 
-# Simulates recover of a tree, starting at the root (independent) node. Assumes
-# that all other nodes are dependent and therefore to optimally recover, we 
-# branch out from the root. Our algorithm works by "merging" any recovered nodes
-# into the root node, and re-evaluating all adjacent subtrees.
-# ===============================================================================
-# Assumptions: Each node in the networkx graph G has the attributes:
-# income, util, and demand. Resources: amount of resources per recovery iteration.
-# returns the root (starting independent node) of recovery
 def simulate_tree_recovery(G, resources, draw=False):
+    '''
+    Simulates recovery of a tree, starting at the root (independent) node. Assumes
+    that all other nodes are dependent and therefore to optimally recover, we 
+    branch out from the root. Our algorithm works by "merging" any recovered nodes
+    into the root node, and re-evaluating all adjacent subtrees.
+    Assumptions: Each node in the networkx graph G has the attributes:
+    income, util, and demand.
+
+    :param G: networkx graph
+    :param resources: Number of resources per time step
+    :param draw: If true, plot graph at each step.
+    :return: root of G
+    '''
     # clean image dir
     folder = 'plots/trees'
     for the_file in os.listdir(folder):
@@ -216,8 +246,16 @@ def simulate_tree_recovery(G, resources, draw=False):
     print(total_utility)
     return root
 
-# calculates the maximum utility possible from recovering a tree
 def max_util(G, resources, root):
+    '''
+    Calculates number of possibly optimal configs necessary to check for a given
+    graph G. Prunes starting from |V_G|!.
+    
+    :param G: networkx graph
+    :param resources: Number of resources at each time step
+    :param root: root of tree G
+    :return: tuple of (num possibly optimal configs, total number of configurations)
+    '''
     number_of_nodes = G.number_of_nodes()
     # create all possible node recovery orders
     all_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
@@ -245,13 +283,16 @@ def max_util(G, resources, root):
 
     return (len(pruned_configs), len(all_permutations))
 
-# Calculate how much pruning reduces the solution space by iterating through random graphs
-# and marking mean, std for the amount pruned
 def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
-    average_pruning = []
-    toolbar_width = graphs_per_range
-    resources = 1
-
+    '''
+    Calculate how much pruning reduces the solution space by iterating through random graphs
+    and marking mean, std for the amount pruned
+    
+    :param node_range_x: lower bound for number of nodes in graph
+    :param node_range_y: upper bound for number of nodes in graph
+    :param graphs_per_range: number of graphs to test for each node size graph
+    :return: list of tuples, where [0] corresponds to the avg stats (avg pruned, std) for node_range_x.
+    '''
     # generate 1000 random graphs, compare on average how much we can prune
     for size in range(node_range_x, node_range_y):
         bar = Bar('Processing', max=graphs_per_range)
@@ -273,8 +314,12 @@ def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
 
     return average_pruning
 
-# temp function
 def graph_pruning_stats():
+    '''
+    Graphs stats given by calc_pruning_stats. Wrapper function.
+
+    :return: null
+    '''
     start_size = 5; end_size = 8;
     average_pruning = calc_pruning_stats(start_size, end_size, 1000)
 
@@ -301,33 +346,33 @@ def graph_pruning_stats():
     plt.savefig('plots/pruning_data.png')
 
 def calc_height(G, root):
-    """
-    @param G: networkx graph
-    return: height of G assuming tree.
-    """
+    '''
+    Calculate height of tree, longest path from root to leaf
+
+    :param G: networkx graph
+    :param root: Root of tree
+    :return: height of G assuming tree.
+    '''
     # dict of shortest path lengths
     path_lengths = nx.shortest_path_length(G, root)
 
     return max(path_lengths.values())
 
 def plot_bar_x(data, label, dir):
-    # this is for plotting purpose
+    '''
+    Plot 1d data as histogram with labels along x axis
+
+    :param data: 1-D array of data to graph
+    :param label: labels along x axis
+    :param dir: directory to save plot
+    :return: null
+    '''
     index = np.arange(len(label))
     plt.bar(index, data)
     plt.xlabel('Genre', fontsize=5)
     plt.ylabel('Avg. # of Pruned Configs', fontsize=5)
     plt.xticks(index, label, fontsize=5, rotation=30)
     plt.title('8 Node Tree Height v. Prunable Configurations')
-
-    rects = ax.patches
-
-    # Make some labels.
-    labels = ["label%d" % i for i in xrange(len(rects))]
-
-    for rect, label in zip(rects, labels):
-        height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width() / 2, height + 5, label,
-                ha='center', va='bottom')
 
     plt.savefig(dir)
 
