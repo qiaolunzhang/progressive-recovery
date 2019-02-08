@@ -11,14 +11,18 @@ import sys
 from progress.bar import Bar
 import math
 
-def r_tree(nodes):
+def r_tree(nodes, height=None):
     '''
     Generates a random tree, with random utility and demand for each node
 
-    :param int nodes: Number of nodes in the tree
+    :param nodes: Number of nodes in the tree
+    :param height: (optional) produces tree with given height.
     :return: Random tree with len{V} = nodes
     '''
     G = nx.random_tree(nodes)
+    if height is not None:
+        while calc_height(G, get_root(G)) is not height:
+            G = nx.random_tree(nodes)
     utils = {}
     demand = {}
 
@@ -246,7 +250,7 @@ def simulate_tree_recovery(G, resources, draw=False):
     print(total_utility)
     return root
 
-def max_util(G, resources, root):
+def max_util_configs(G, resources, root):
     '''
     Calculates number of possibly optimal configs necessary to check for a given
     graph G. Prunes starting from |V_G|!.
@@ -256,14 +260,21 @@ def max_util(G, resources, root):
     :param root: root of tree G
     :return: tuple of (num possibly optimal configs, total number of configurations)
     '''
+    print('Fetching all possible configurations...')
     number_of_nodes = G.number_of_nodes()
     # create all possible node recovery orders
     all_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
-    # prune all recovery configurations that don't begin with root
-    recovery_permutations = [config for config in all_permutations if config[0] == root]
+            
     # prune configs that aren't neighbors of nodes already recovered
     pruned_configs = []
-    for config in recovery_permutations:
+
+    bar = Bar('Pruning Configurations', max=len(all_permutations))
+
+    for config in all_permutations:
+        # prune all recovery configurations that don't begin with root
+        bar.next()
+        if config[0] != root:
+            continue
         false_config = False
         # iterate through all indices in that particular config
         for node_index in range(1, len(config)):
@@ -281,7 +292,8 @@ def max_util(G, resources, root):
         if not false_config:   
             pruned_configs.append(config)
 
-    return (len(pruned_configs), len(all_permutations))
+    bar.finish()
+    return pruned_configs
 
 def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
     '''
@@ -301,7 +313,7 @@ def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
             G = r_tree(size)
             root = get_root(G)
 
-            pruned, not_pruned = max_util(G, resources, root)
+            pruned, not_pruned = max_util_configs(G, resources, root)
             current_size.append(not_pruned - pruned)
             bar.next()
         stats_tuple = ((np.mean(current_size), np.std(current_size)))
@@ -376,6 +388,7 @@ def plot_bar_x(data, label, dir):
 
     plt.savefig(dir)
 
+# DEBUG
 def main():
     # Number of nodes in the random tree
     nodes = 8; draw = True; resources = 1;
@@ -388,14 +401,15 @@ def main():
     #     print(node, utils[node], demand[node])
 
     #root = simulate_tree_recovery(G, resources, draw)
-    #pruned, not_pruned = max_util(G, resources, root)
+    #pruned, not_pruned = max_util_configs(G, resources, root)
 
+    # calculate height stats/relationships between height and pruning
     height_stats = [[] for x in range(1, 8)]
     for x in range(2500):
         G = r_tree(nodes)
         root = get_root(G)
         height = calc_height(G, root)
-        height_stats[height].append(max_util(G, resources=1, root=root))
+        height_stats[height].append(max_util_configs(G, resources=1, root=root))
 
     avg_pruning = []
     for lst in height_stats:
