@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from tree_recovery import get_root, max_util_configs, merge_nodes, r_tree, plot_graph, calc_height
+from tree_recovery import get_root, max_util_configs, merge_nodes, r_tree, plot_graph, calc_height, simulate_tree_recovery
 from progress.bar import Bar
 
 # TODO:
@@ -154,14 +154,24 @@ class RecoveryEnv:
 
         return max_total_utility, max_config
 
-def main():
+def deviation_from_optimal(nodes, resources, height=None):
     # construct simple example to find optimal recovery config
-    tree = r_tree(nodes=10, height=None)
+    tree = r_tree(nodes=nodes, height=height)
     root = get_root(tree)
     plot_graph(tree, root, 'plots/sample.png')
-
     G = RecoveryEnv(tree, [root])
-    print(G.optimal(2))
+
+    return (G.optimal(resources)[0], simulate_tree_recovery(tree, resources, root))
+
+def main():
+    stats = []
+    nodes = 7; resources = 2
+    for x in range(100):
+        stats.append(deviation_from_optimal(nodes, resources))
+
+    print(stats)
+    avg = [x[1] / x[0] for x in stats]
+    print('Average percentage of optimal for {0} node graph:'.format(nodes), sum(avg)/len(avg))
 
 if __name__ == "__main__":
     main()

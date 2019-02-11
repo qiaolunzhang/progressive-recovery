@@ -31,13 +31,19 @@ def r_tree(nodes, height=None):
 
     # random utils and demand for each node
     for node in G.nodes:
-        utils.update({node: random.randint(1, 4)})
-        demand.update({node: random.randint(1, 2)})
+        utils.update({node: random.randint(1, 5)})
+        demand.update({node: random.randint(1, 5)})
         income.update({node: utils[node] - demand[node]})
 
     nx.set_node_attributes(G, name='util', values=utils)
     nx.set_node_attributes(G, name='demand', values=demand)
     nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+def update(G, demand, utils):
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='util', values=utils)
 
     return G
 
@@ -127,7 +133,7 @@ def get_root(G):
 
     return root
 
-def simulate_tree_recovery(G, resources, draw=False):
+def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
     '''
     Simulates recovery of a tree, starting at the root (independent) node. Assumes
     that all other nodes are dependent and therefore to optimally recover, we 
@@ -154,16 +160,27 @@ def simulate_tree_recovery(G, resources, draw=False):
     # current and total utility are both 0 to begin
     current_utility = 0
     total_utility = 0
-    remaining_resources = 0
 
     demand = nx.get_node_attributes(G, 'demand')
     utils = nx.get_node_attributes(G, 'util')
 
-    root = get_root(G)
+    current_utility += utils[root]
+    # total_utility += current_utility
+    
+    # remaining resources is just r - d if we have more than we need
+    # or 0 if it is a perfect multiple
+    # or the first multiple of resources > demand[root] - resources e.g. for d = 5 and r = 3, ceil(5/3)*5 = 6 -> 6-5 = 1 remaining resource
 
-    # DEBUG
-    # print('Root node income: ', utils[root] - demand[root])
-    # print('Root node index: ', root)
+    if resources > demand[root]:
+        remaining_resources = resources - demand[root]
+    elif demand[root] % resources == 0:
+        remaining_resources = 0
+        total_utility += current_utility
+    else:
+        remaining_resources = math.ceil(demand[root]/resources)*resources - demand[root]
+
+    if debug:
+        print('Remaining resources: ', remaining_resources)
 
     # must recover root first, no matter how long it takes. Start measuring total
     # utility after applying the first round of resources _after_ recovering root.
@@ -178,7 +195,10 @@ def simulate_tree_recovery(G, resources, draw=False):
         pos = plot_graph(H, root, folder + '/{}.png'.format(i))
 
     while H.number_of_nodes() > 1:
-        print('Current utility: ', current_utility, 'Total utility: ', total_utility)
+        H = update(H, demand, utils)
+
+        if debug:
+            print('Current utility: ', current_utility, 'Total utility: ', total_utility)
 
         # Dict of possible recovery nodes and their associated eval incomes
         possible_recovery = {}
@@ -201,12 +221,15 @@ def simulate_tree_recovery(G, resources, draw=False):
             # update our possible move list with the income of the move if we recover this node
             possible_recovery.update({neighbor: subgraph_income})
 
-        print(possible_recovery)
+        if debug:
+            print(possible_recovery)
         i += 1
 
         # choose the best move (look how pythonic this is)
         recovery_node = max(possible_recovery.items(), key=operator.itemgetter(1))[0]
-        print('Recovering node: ', recovery_node, [utils[recovery_node], demand[recovery_node]])
+
+        if debug:
+            print('Recovering node: ', recovery_node, [utils[recovery_node], demand[recovery_node]])
 
         # Use all remaining resources if we had some from the previous turn, otherwise
         # the amount of resources we are allocated this turn is our constant resource income
@@ -230,6 +253,12 @@ def simulate_tree_recovery(G, resources, draw=False):
             demand[recovery_node] = 0
             current_utility += utils[recovery_node]
             H = merge_nodes(H, root, recovery_node)
+
+            # unless we're at the last step:
+            if H.number_of_nodes() == 1:
+                total_utility += current_utility
+                break
+
             if draw:
                 plot_graph(H, root, folder + '/{0}.png'.format(i), pos)
             continue
@@ -247,8 +276,7 @@ def simulate_tree_recovery(G, resources, draw=False):
         # increment total utility
         total_utility += current_utility
 
-    print(total_utility)
-    return root
+    return total_utility
 
 def max_util_configs(G, resources, root):
     '''
