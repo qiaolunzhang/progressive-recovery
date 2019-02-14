@@ -1,8 +1,9 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from tree_recovery import get_root, max_util_configs, merge_nodes, r_tree, plot_graph, calc_height, simulate_tree_recovery
+from tree_recovery import get_root, merge_nodes, r_tree, plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, par_max_util_configs, prune_map
 from progress.bar import Bar
+import multiprocessing
 
 # TODO:
 # 1. assume multiple independent nodes. Currently assuming independent nods is list of len 1
@@ -18,11 +19,12 @@ class RecoveryEnv:
         self.independent_nodes = independent_nodes
         self.root = self.independent_nodes[0]
 
-    def recover(self, order, resources, debug=False, draw=False):
+    def recover(self, order, resources, include_root, debug=False, draw=False):
         '''
         Recover our network with the order given.
         :param order: |network| len list with order of nodes to recover
         :param resources: resources per time step (assumed constant)
+        :param include_root: include recovering root (1st node) in the total_utility count
         :param debug: print step by step recovery order to check if correct
         :param draw: draw graph at each step of recovery
         :return: total utility
@@ -48,6 +50,10 @@ class RecoveryEnv:
         current_utility = 0
         total_utility = 0
         remaining_resources = 0
+
+        if not include_root:
+            current_utility = order[0]
+            node_recovery_index += 1
 
         # DEBUG
         # print('Root node income: ', utils[root] - demand[root])
@@ -126,14 +132,16 @@ class RecoveryEnv:
 
         return total_utility
 
-    def optimal(self, resources):
+    def optimal(self, resources, include_root=False):
         '''
         Returns the optimal total utility for self.network. May not be unique.
         :param resources: resources per time step
+        :param include_root: include recovering root (1st node) in the total_utility count
         :return: optimal total utility over _ceiling{sum(demand) / resources} time steps
         '''
         # get the possible maximum utility configs
-        configs = max_util_configs(self.network, resources, self.root)
+        configs = par_get_configs(self.network, [self.root])
+        print(configs)
         max_total_utility = 0; max_config = None
 
         print(len(configs), ' maximum utility configs need to be checked.\n')
@@ -144,7 +152,8 @@ class RecoveryEnv:
 
         # check for greatest
         for config in configs:
-            config_util = self.recover(config, resources)
+            config_util = self.recover(config, resources, include_root)
+
             if config_util > max_total_utility:
                 max_config = config
                 max_total_utility = config_util
@@ -154,24 +163,37 @@ class RecoveryEnv:
 
         return max_total_utility, max_config
 
+
+# Helper functions
+# ================================================================================================== #
 def deviation_from_optimal(nodes, resources, height=None):
-    # construct simple example to find optimal recovery config
+    '''
+    Construct simple example to find optimal recovery config
+    :param nodes: number of nodes in the random tree
+    :param resources: number of resources at each time step
+    :param height: height of tree to generate (can be None)
+    :return: Tuple (optimal, heuristic) of total utility over all time steps
+    '''
     tree = r_tree(nodes=nodes, height=height)
     root = get_root(tree)
     plot_graph(tree, root, 'plots/sample.png')
     G = RecoveryEnv(tree, [root])
 
-    return (G.optimal(resources)[0], simulate_tree_recovery(tree, resources, root))
+    return (G.optimal(resources, include_root=True)[0], simulate_tree_recovery(tree, resources, root))
 
-def main():
-    stats = []
-    nodes = 7; resources = 2
-    for x in range(100):
-        stats.append(deviation_from_optimal(nodes, resources))
+def par_get_configs(G, independent_nodes):
+    '''
+    Generate and prune configurations in a parallel fashion. Needs to be at high namespace level.
 
-    print(stats)
-    avg = [x[1] / x[0] for x in stats]
-    print('Average percentage of optimal for {0} node graph:'.format(nodes), sum(avg)/len(avg))
+    :param G: networkx graph
+    :param independent_nodes: List of independent nodes
+    :return: list of pruned configurations
+    '''
+    all_permutations = par_max_util_configs(G, independent_nodes)
+    pool = multiprocessing.Pool()
+    pruned = pool.map(prune_map, all_permutations)
 
-if __name__ == "__main__":
-    main()
+    pruned = [list(config) for config in pruned if config != []]
+    pool.close()
+
+    return pruned

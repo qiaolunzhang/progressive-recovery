@@ -10,6 +10,7 @@ import time
 import sys
 from progress.bar import Bar
 import math
+import multiprocessing
 
 def r_tree(nodes, height=None):
     '''
@@ -31,8 +32,8 @@ def r_tree(nodes, height=None):
 
     # random utils and demand for each node
     for node in G.nodes:
-        utils.update({node: random.randint(1, 5)})
-        demand.update({node: random.randint(1, 5)})
+        utils.update({node: random.randint(1, 8)})
+        demand.update({node: random.randint(1, 8)})
         income.update({node: utils[node] - demand[node]})
 
     nx.set_node_attributes(G, name='util', values=utils)
@@ -133,8 +134,9 @@ def get_root(G):
 
     return root
 
-def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
+def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
+    |U - d| -- Heuristic
     Simulates recovery of a tree, starting at the root (independent) node. Assumes
     that all other nodes are dependent and therefore to optimally recover, we 
     branch out from the root. Our algorithm works by "merging" any recovered nodes
@@ -145,6 +147,7 @@ def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
     :param G: networkx graph
     :param resources: Number of resources per time step
     :param draw: If true, plot graph at each step.
+    :param debug: output logs to std.out
     :return: root of G
     '''
     # clean image dir
@@ -170,7 +173,6 @@ def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
     # remaining resources is just r - d if we have more than we need
     # or 0 if it is a perfect multiple
     # or the first multiple of resources > demand[root] - resources e.g. for d = 5 and r = 3, ceil(5/3)*5 = 6 -> 6-5 = 1 remaining resource
-
     if resources > demand[root]:
         remaining_resources = resources - demand[root]
     elif demand[root] % resources == 0:
@@ -206,8 +208,7 @@ def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
         # find and iterate through all nodes adjacent to the root
         neighbors = H.neighbors(root)
         for neighbor in neighbors:
-            # DEBUG
-            #print(neighbor, [utils[neighbor], demand[neighbor]])
+            # print(neighbor, [utils[neighbor], demand[neighbor]])
 
             # first create an unconnected component
             test_graph = H.copy()
@@ -226,7 +227,18 @@ def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
         i += 1
 
         # choose the best move (look how pythonic this is)
-        recovery_node = max(possible_recovery.items(), key=operator.itemgetter(1))[0]
+        recovery_nodes = [key for key in possible_recovery if possible_recovery[key] == max(possible_recovery.values())]
+        
+        if debug:
+            print(recovery_nodes)
+
+        # if multiple max nodes, choose the one with the best 'recovery ratio'
+        max_ratio = 0; recovery_node = recovery_nodes[0]
+        for node in recovery_nodes:
+            ratio = utils[node] / demand[node]
+            if ratio > max_ratio:
+                max_ratio = ratio
+                recovery_node = node
 
         if debug:
             print('Recovering node: ', recovery_node, [utils[recovery_node], demand[recovery_node]])
@@ -278,112 +290,50 @@ def simulate_tree_recovery(G, resources, root, draw=False, debug=False):
 
     return total_utility
 
-def max_util_configs(G, resources, root):
+def par_max_util_configs(G, independent_nodes):
     '''
-    Calculates number of possibly optimal configs necessary to check for a given
-    graph G. Prunes starting from |V_G|!.
+    Parallelized version of max_util_configs. 
     
     :param G: networkx graph
-    :param resources: Number of resources at each time step
-    :param root: root of tree G
-    :return: tuple of (num possibly optimal configs, total number of configurations)
+    :param root: list of independent nodes in G (these don't need to be recovered)
+    :return: list of possibly maximum util configurations
     '''
-    print('Fetching all possible configurations...')
     number_of_nodes = G.number_of_nodes()
+
+    # non independent nodes are nodes we need to recover; they are all nodes that are not-indepedent
+    non_independent_nodes = set(range(number_of_nodes)) - set(independent_nodes)
+
     # create all possible node recovery orders
-    all_permutations = list(itertools.permutations([x for x in range(G.number_of_nodes())]))
-            
-    # prune configs that aren't neighbors of nodes already recovered
-    pruned_configs = []
+    all_permutations = list(itertools.permutations(non_independent_nodes))
+    all_permutations = [[tuple(independent_nodes), config, G] for config in all_permutations]
 
-    bar = Bar('Pruning Configurations', max=len(all_permutations))
+    return all_permutations
 
-    for config in all_permutations:
-        # prune all recovery configurations that don't begin with root
-        bar.next()
-        if config[0] != root:
-            continue
-        false_config = False
-        # iterate through all indices in that particular config
-        for node_index in range(1, len(config)):
-            # for each index, check if it is a neighbor of at least one node already recovered
-            neighbors = [n for n in G.neighbors(config[node_index])]
-            # compute the intersection between the recovered nodes and the neighbors of the node
-            # at the current index. If this intersection is null, it is a provably suboptimal 
-            # recovery configuration, so we drop it.
-            intersection = list(set(config[:node_index]).intersection(neighbors))
-            if not intersection:
-                false_config = True
-                break
-
-        # if every such left-node-slice is not sub-optimal, we add it to the set
-        if not false_config:   
-            pruned_configs.append(config)
-
-    bar.finish()
-    return pruned_configs
-
-def calc_pruning_stats(node_range_x, node_range_y, graphs_per_range):
+def prune_map(config_graph):
     '''
-    Calculate how much pruning reduces the solution space by iterating through random graphs
-    and marking mean, std for the amount pruned
-    
-    :param node_range_x: lower bound for number of nodes in graph
-    :param node_range_y: upper bound for number of nodes in graph
-    :param graphs_per_range: number of graphs to test for each node size graph
-    :return: list of tuples, where [0] corresponds to the avg stats (avg pruned, std) for node_range_x.
+    Lambda function to apply using parallel pool.map
+    :param config_graph: [independent_nodes, config, G] where G contains the graph the config is based on, and config is a node recovery order
+    :return: [] if config is not valid, or config if it is a valid recovery configuration
     '''
-    # generate 1000 random graphs, compare on average how much we can prune
-    for size in range(node_range_x, node_range_y):
-        bar = Bar('Processing', max=graphs_per_range)
-        current_size = []
-        for graph_num in range(graphs_per_range):
-            G = r_tree(size)
-            root = get_root(G)
+    independent_nodes = config_graph[0]
+    config = independent_nodes + config_graph[1]
+    G = config_graph[2]
 
-            pruned, not_pruned = max_util_configs(G, resources, root)
-            current_size.append(not_pruned - pruned)
-            bar.next()
-        stats_tuple = ((np.mean(current_size), np.std(current_size)))
-        average_pruning.append(stats_tuple)
-        bar.finish()
-        unpruned = math.factorial(size)
-        print('Average reduction percentage:', stats_tuple[0] / unpruned)
-        print('unpruned', unpruned, '\naverage node reduction:', stats_tuple[0], '\nwith std', stats_tuple[1])
-        print(size, 'node complete\n')
+    # start at the first non_independent node
+    for node_index in range(1, len(config)):
+        # for each index, check if it is a neighbor of at least one node already recovered
+        neighbors = [n for n in G.neighbors(config[node_index])]
 
-    return average_pruning
+        # compute the intersection between the recovered nodes and the neighbors of the node
+        # at the current index. If this intersection is null, it is a provably suboptimal 
+        # recovery configuration, so we drop it.
+        intersection = list(set(config[:node_index]).intersection(neighbors))
 
-def graph_pruning_stats():
-    '''
-    Graphs stats given by calc_pruning_stats. Wrapper function.
+        # not a valid intersection i.e. does not have at least 1 neighbor to the left
+        if not intersection:
+            return []
 
-    :return: null
-    '''
-    start_size = 5; end_size = 8;
-    average_pruning = calc_pruning_stats(start_size, end_size, 1000)
-
-    labels = ['{0} Nodes'.format(x) for x in range(start_size, end_size)]
-    average = np.array([d[0] for d in average_pruning])
-    std = np.array([d[1] for d in average_pruning])
-    iter_ = 0
-    for x in range(start_size, end_size):
-        average[iter_] = average[iter_] / math.factorial(x)
-        std[iter_] = std[iter_] / math.factorial(x)
-        iter_ += 1
-
-    fig, ax = plt.subplots()
-    ax.bar(np.arange(len(labels)), average, yerr=std, align='center', alpha=0.5, ecolor='black', capsize=10)
-
-    ax.set_ylabel('% of Recovery Configurations Pruned \n (Start with n! configurations)')
-    ax.set_xticks(np.arange(len(labels)))
-    ax.set_xticklabels(labels)
-    ax.set_title('Average Pruning for Random Trees of Size N')
-    ax.yaxis.grid(True)
-
-    # Save the figure and show
-    plt.tight_layout()
-    plt.savefig('plots/pruning_data.png')
+    return config
 
 def calc_height(G, root):
     '''
@@ -408,51 +358,10 @@ def plot_bar_x(data, label, dir):
     :return: null
     '''
     index = np.arange(len(label))
-    plt.bar(index, data)
-    plt.xlabel('Genre', fontsize=5)
-    plt.ylabel('Avg. # of Pruned Configs', fontsize=5)
-    plt.xticks(index, label, fontsize=5, rotation=30)
-    plt.title('8 Node Tree Height v. Prunable Configurations')
+    plt.plot(index, data)
+    plt.xlabel('Number of Nodes')
+    plt.ylabel('Total utility in Percentage of Optimal')
+    plt.xticks(index, label)
+    plt.title('U-D Heuristic: % of Optimal (Sampled)')
 
     plt.savefig(dir)
-
-# DEBUG
-def main():
-    # Number of nodes in the random tree
-    nodes = 8; draw = True; resources = 1;
-    G = r_tree(nodes)
-    
-    # # debug printing node util and demand values
-    # utils = nx.get_node_attributes(G, 'util')
-    # demand = nx.get_node_attributes(G, 'demand')
-    # for node in G.nodes:
-    #     print(node, utils[node], demand[node])
-
-    #root = simulate_tree_recovery(G, resources, draw)
-    #pruned, not_pruned = max_util_configs(G, resources, root)
-
-    # calculate height stats/relationships between height and pruning
-    height_stats = [[] for x in range(1, 8)]
-    for x in range(2500):
-        G = r_tree(nodes)
-        root = get_root(G)
-        height = calc_height(G, root)
-        height_stats[height].append(max_util_configs(G, resources=1, root=root))
-
-    avg_pruning = []
-    for lst in height_stats:
-        if len(lst) == 0:
-            avg_pruning.append(0)
-            continue
-
-        avg = 0
-        for prune_pair in lst:
-            avg += prune_pair[0]
-        avg = avg / len(lst)
-        avg_pruning.append(avg)
-
-    print(avg_pruning)
-    plot_bar_x(avg_pruning, ['height {0}'.format(x) for x in range(len(avg_pruning))], 'plots/pruning.png')
-
-if __name__ == "__main__":
-    main()
