@@ -32,8 +32,8 @@ def r_tree(nodes, height=None):
 
     # random utils and demand for each node
     for node in G.nodes:
-        utils.update({node: random.randint(1, 8)})
-        demand.update({node: random.randint(1, 8)})
+        utils.update({node: random.randint(1, 4)})
+        demand.update({node: random.randint(1, 2)})
         income.update({node: utils[node] - demand[node]})
 
     nx.set_node_attributes(G, name='util', values=utils)
@@ -166,23 +166,27 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, de
 
     demand = nx.get_node_attributes(G, 'demand')
     utils = nx.get_node_attributes(G, 'util')
-
-    current_utility += utils[root]
-    # total_utility += current_utility
     
     # remaining resources is just r - d if we have more than we need
     # or 0 if it is a perfect multiple
     # or the first multiple of resources > demand[root] - resources e.g. for d = 5 and r = 3, ceil(5/3)*5 = 6 -> 6-5 = 1 remaining resource
-    if resources > demand[root]:
-        remaining_resources = resources - demand[root]
-    elif demand[root] % resources == 0:
-        remaining_resources = 0
-        total_utility += current_utility
-    else:
-        remaining_resources = math.ceil(demand[root]/resources)*resources - demand[root]
+    if include_root:
+        current_utility += utils[root]
 
-    if debug:
-        print('Remaining resources: ', remaining_resources)
+        if resources > demand[root]:
+            remaining_resources = resources - demand[root]
+        elif demand[root] % resources == 0:
+            remaining_resources = 0
+            total_utility += current_utility
+        else:
+            remaining_resources = math.ceil(demand[root]/resources)*resources - demand[root]
+
+        if debug:
+            print('Remaining resources: ', remaining_resources)
+
+    # if we don't want to include root in our total_utility count
+    else:
+        remaining_resources = 0
 
     # must recover root first, no matter how long it takes. Start measuring total
     # utility after applying the first round of resources _after_ recovering root.
@@ -312,6 +316,7 @@ def par_max_util_configs(G, independent_nodes):
 def prune_map(config_graph):
     '''
     Lambda function to apply using parallel pool.map
+    
     :param config_graph: [independent_nodes, config, G] where G contains the graph the config is based on, and config is a node recovery order
     :return: [] if config is not valid, or config if it is a valid recovery configuration
     '''

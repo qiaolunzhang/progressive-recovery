@@ -6,7 +6,8 @@ from progress.bar import Bar
 import multiprocessing
 
 # TODO:
-# 1. assume multiple independent nodes. Currently assuming independent nods is list of len 1
+# 1. Test multiple independent nodes for optimality (we are only comparing against U-D heuristic
+# for now)
 
 class RecoveryEnv:
     def __init__(self, G, independent_nodes):
@@ -19,12 +20,12 @@ class RecoveryEnv:
         self.independent_nodes = independent_nodes
         self.root = self.independent_nodes[0]
 
-    def recover(self, order, resources, include_root, debug=False, draw=False):
+    def recover(self, order, resources, include_independent_nodes=False, debug=False, draw=False):
         '''
         Recover our network with the order given.
         :param order: |network| len list with order of nodes to recover
         :param resources: resources per time step (assumed constant)
-        :param include_root: include recovering root (1st node) in the total_utility count
+        :param include_independent_nodes: include recovering independent nodes in the total_utility count
         :param debug: print step by step recovery order to check if correct
         :param draw: draw graph at each step of recovery
         :return: total utility
@@ -51,9 +52,8 @@ class RecoveryEnv:
         total_utility = 0
         remaining_resources = 0
 
-        if not include_root:
-            current_utility = order[0]
-            node_recovery_index += 1
+        if not include_independent_nodes:
+            node_recovery_index += len(self.independent_nodes)
 
         # DEBUG
         # print('Root node income: ', utils[root] - demand[root])
@@ -132,15 +132,15 @@ class RecoveryEnv:
 
         return total_utility
 
-    def optimal(self, resources, include_root=False):
+    def optimal(self, resources, include_independent_nodes=False):
         '''
         Returns the optimal total utility for self.network. May not be unique.
         :param resources: resources per time step
-        :param include_root: include recovering root (1st node) in the total_utility count
+        :param include_independent_nodes: include recovering independent nodes in the total_utility count
         :return: optimal total utility over _ceiling{sum(demand) / resources} time steps
         '''
         # get the possible maximum utility configs
-        configs = par_get_configs(self.network, [self.root])
+        configs = par_get_configs(self.network, self.independent_nodes)
         print(configs)
         max_total_utility = 0; max_config = None
 
@@ -152,7 +152,7 @@ class RecoveryEnv:
 
         # check for greatest
         for config in configs:
-            config_util = self.recover(config, resources, include_root)
+            config_util = self.recover(config, resources, include_independent_nodes)
 
             if config_util > max_total_utility:
                 max_config = config
@@ -169,6 +169,7 @@ class RecoveryEnv:
 def deviation_from_optimal(nodes, resources, height=None):
     '''
     Construct simple example to find optimal recovery config
+
     :param nodes: number of nodes in the random tree
     :param resources: number of resources at each time step
     :param height: height of tree to generate (can be None)
@@ -179,7 +180,7 @@ def deviation_from_optimal(nodes, resources, height=None):
     plot_graph(tree, root, 'plots/sample.png')
     G = RecoveryEnv(tree, [root])
 
-    return (G.optimal(resources, include_root=True)[0], simulate_tree_recovery(tree, resources, root))
+    return (G.optimal(resources)[0], simulate_tree_recovery(tree, resources, root))
 
 def par_get_configs(G, independent_nodes):
     '''
