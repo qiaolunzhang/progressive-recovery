@@ -134,6 +134,131 @@ def get_root(G):
 
     return root
 
+def par_max_util_configs(G, independent_nodes):
+    '''
+    Parallelized version of max_util_configs. 
+    
+    :param G: networkx graph
+    :param root: list of independent nodes in G (these don't need to be recovered)
+    :return: list of possibly maximum util configurations
+    '''
+    number_of_nodes = G.number_of_nodes()
+
+    # non independent nodes are nodes we need to recover; they are all nodes that are not-indepedent
+    non_independent_nodes = set(range(number_of_nodes)) - set(independent_nodes)
+
+    # create all possible node recovery orders
+    all_permutations = list(itertools.permutations(non_independent_nodes))
+    all_permutations = [[tuple(independent_nodes), config, G] for config in all_permutations]
+
+    return all_permutations
+
+def prune_map(config_graph):
+    '''
+    Lambda function to apply using parallel pool.map
+    
+    :param config_graph: [independent_nodes, config, G] where G contains the graph the config is based on, and config is a node recovery order
+    :return: [] if config is not valid, or config if it is a valid recovery configuration
+    '''
+    independent_nodes = config_graph[0]
+    config = independent_nodes + config_graph[1]
+    G = config_graph[2]
+
+    # start at the first non_independent node
+    for node_index in range(1, len(config)):
+        # for each index, check if it is a neighbor of at least one node already recovered
+        neighbors = [n for n in G.neighbors(config[node_index])]
+
+        # compute the intersection between the recovered nodes and the neighbors of the node
+        # at the current index. If this intersection is null, it is a provably suboptimal 
+        # recovery configuration, so we drop it.
+        intersection = list(set(config[:node_index]).intersection(neighbors))
+
+        # not a valid intersection i.e. does not have at least 1 neighbor to the left
+        if not intersection:
+            return []
+
+    return config
+
+def calc_height(G, root):
+    '''
+    Calculate height of tree, longest path from root to leaf
+
+    :param G: networkx graph
+    :param root: Root of tree
+    :return: height of G assuming tree.
+    '''
+    # dict of shortest path lengths
+    path_lengths = nx.shortest_path_length(G, root)
+
+    return max(path_lengths.values())
+
+def plot_bar_x(data, label, dir):
+    '''
+    Plot 1d data as histogram with labels along x axis
+
+    :param data: 1-D array of data to graph
+    :param label: labels along x axis
+    :param dir: directory to save plot
+    :return: null
+    '''
+    index = np.arange(len(label))
+    plt.plot(index, data)
+    plt.xlabel('Number of Nodes')
+    plt.ylabel('Total utility in Percentage of Optimal')
+    plt.xticks(index, label)
+    plt.title('U-D Heuristic: % of Optimal (Sampled)')
+
+    plt.savefig(dir)
+
+def DP_optimal(G, independent_nodes, resources):
+    '''
+    DP algorithm calculating optimal recovery utility
+
+    :param G: networkx graph with attributes "util" and "demand" for each node
+    :param independent_nodes: already functional nodes of the problem
+    :param resources: resources per turn
+    :return: ordering O = [v1, v2, ..., vn] where vn = |V(G)| of nodes to recover for a star
+    '''
+    class hashable_set:
+        def __init__(self, set):
+            self.set = set
+
+    util = nx.get_node_attributes(G, 'util')
+    demand = nx.get_node_attributes(G, 'demand')
+    print
+    V = G.number_of_nodes()
+    # note: use (V+1) in range since it is not inclusive
+    vertex_set = set(range(V))
+    C = resources
+    Z = {}
+    A = [-1 for x in range(V)]
+    A[0] = 0
+
+    for s in range(1, V):
+        # generate all |s| size subsets
+        s_node_subsets = list(itertools.combinations((range(V)), s))
+        for X in s_node_subsets:
+            q = float('-inf')
+            v_js = vertex_set - set(X)
+            print(v_js)
+            # generate list of functional nodes
+            functional_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+            print(functional_nodes)
+            for v_i in functional_nodes:
+                sum_demands = sum([demand[int(v_j)] for v_j in v_js])
+                q_ = math.ceil((util[int(v_i)] * sum_demands) / C) + Z[hashable_set((set(X) - set([v_i]))).__hash__()]
+
+                if q_ > q:
+                    q = q_
+                    A[s] = X
+                #endif
+            #endfor
+            Z[hashable_set(set(X)).__hash__()] = q
+        #endfor
+    #endfor
+    return A
+
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
     |U - d| -- Heuristic
@@ -293,80 +418,3 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, de
         total_utility += current_utility
 
     return total_utility
-
-def par_max_util_configs(G, independent_nodes):
-    '''
-    Parallelized version of max_util_configs. 
-    
-    :param G: networkx graph
-    :param root: list of independent nodes in G (these don't need to be recovered)
-    :return: list of possibly maximum util configurations
-    '''
-    number_of_nodes = G.number_of_nodes()
-
-    # non independent nodes are nodes we need to recover; they are all nodes that are not-indepedent
-    non_independent_nodes = set(range(number_of_nodes)) - set(independent_nodes)
-
-    # create all possible node recovery orders
-    all_permutations = list(itertools.permutations(non_independent_nodes))
-    all_permutations = [[tuple(independent_nodes), config, G] for config in all_permutations]
-
-    return all_permutations
-
-def prune_map(config_graph):
-    '''
-    Lambda function to apply using parallel pool.map
-    
-    :param config_graph: [independent_nodes, config, G] where G contains the graph the config is based on, and config is a node recovery order
-    :return: [] if config is not valid, or config if it is a valid recovery configuration
-    '''
-    independent_nodes = config_graph[0]
-    config = independent_nodes + config_graph[1]
-    G = config_graph[2]
-
-    # start at the first non_independent node
-    for node_index in range(1, len(config)):
-        # for each index, check if it is a neighbor of at least one node already recovered
-        neighbors = [n for n in G.neighbors(config[node_index])]
-
-        # compute the intersection between the recovered nodes and the neighbors of the node
-        # at the current index. If this intersection is null, it is a provably suboptimal 
-        # recovery configuration, so we drop it.
-        intersection = list(set(config[:node_index]).intersection(neighbors))
-
-        # not a valid intersection i.e. does not have at least 1 neighbor to the left
-        if not intersection:
-            return []
-
-    return config
-
-def calc_height(G, root):
-    '''
-    Calculate height of tree, longest path from root to leaf
-
-    :param G: networkx graph
-    :param root: Root of tree
-    :return: height of G assuming tree.
-    '''
-    # dict of shortest path lengths
-    path_lengths = nx.shortest_path_length(G, root)
-
-    return max(path_lengths.values())
-
-def plot_bar_x(data, label, dir):
-    '''
-    Plot 1d data as histogram with labels along x axis
-
-    :param data: 1-D array of data to graph
-    :param label: labels along x axis
-    :param dir: directory to save plot
-    :return: null
-    '''
-    index = np.arange(len(label))
-    plt.plot(index, data)
-    plt.xlabel('Number of Nodes')
-    plt.ylabel('Total utility in Percentage of Optimal')
-    plt.xticks(index, label)
-    plt.title('U-D Heuristic: % of Optimal (Sampled)')
-
-    plt.savefig(dir)

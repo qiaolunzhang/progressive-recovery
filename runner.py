@@ -1,5 +1,5 @@
 from env import deviation_from_optimal, RecoveryEnv
-from tree_recovery import plot_bar_x, r_tree
+from tree_recovery import plot_bar_x, r_tree, DP_optimal
 
 def heuristic_tester(node_range, sample_size, save_dir, resources=1, height=None):
     '''
@@ -30,7 +30,9 @@ def heuristic_tester(node_range, sample_size, save_dir, resources=1, height=None
 
 
 def main():
-    heuristic_tester(node_range=(4,10), sample_size=20, save_dir='plots/heuristic.png')    
+    G = r_tree(4)
+    print(DP_optimal(G, [0], 1))
+    # heuristic_tester(node_range=(4,10), sample_size=100, save_dir='plots/heuristic.png')    
     # G = r_tree(8)
     # print(deviation_from_optimal(8, 1))
 
