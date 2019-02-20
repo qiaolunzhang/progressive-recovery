@@ -240,12 +240,13 @@ def DP_optimal(G, independent_nodes, resources):
         s_node_subsets = list(itertools.combinations((range(V)), s))
         for X in s_node_subsets:
             q = float('-inf')
+            #v_js : a set of functional nodes
             v_js = vertex_set - set(X)
             print(v_js)
-            # generate list of functional nodes
-            functional_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
-            print(functional_nodes)
-            for v_i in functional_nodes:
+            # generate list of nodes adjacent to any functional nodes
+            adj_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+            print(adj_nodes)
+            for v_i in adj_nodes:
                 sum_demands = sum([demand[int(v_j)] for v_j in v_js])
                 q_ = math.ceil((util[int(v_i)] * sum_demands) / C) + Z[hashable_set((set(X) - set([v_i]))).__hash__()]
 
