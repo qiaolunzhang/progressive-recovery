@@ -211,6 +211,7 @@ def plot_bar_x(data, label, dir):
 
     plt.savefig(dir)
 
+
 def DP_optimal(G, independent_nodes, resources):
     '''
     DP algorithm calculating optimal recovery utility
@@ -218,7 +219,7 @@ def DP_optimal(G, independent_nodes, resources):
     :param G: networkx graph with attributes "util" and "demand" for each node
     :param independent_nodes: already functional nodes of the problem
     :param resources: resources per turn
-    :return: ordering O = [v1, v2, ..., vn] where vn = |V(G)| of nodes to recover for a star
+    :return: opt_recv_plan (a sequence of nodes) and its util value
     '''
     class hashable_set:
         def __init__(self, set):
@@ -232,10 +233,12 @@ def DP_optimal(G, independent_nodes, resources):
     vertex_set = set(range(V))
     C = resources
     Z = {}
-    A = [-1 for x in range(V)]
-    A[0] = 0
+    # A stores a set of nonfunctional nodes at each step
+    A = [-1 for x in range(V)]     
+    opt_plan = [-1 for x in range(V)] # sequence of nodes
+    A[0] = set()
 
-    for s in range(1, V):
+    for s in range(1, (V+1)): # till |V|
         # generate all |s| size subsets
         s_node_subsets = list(itertools.combinations((range(V)), s))
         for X in s_node_subsets:
@@ -257,9 +260,13 @@ def DP_optimal(G, independent_nodes, resources):
                 #endif
             #endfor
             Z[hashable_set(set(X)).__hash__()] = q
+            # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
+            # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
+            opt_plan[(V-s)] = set(A[s]) - set(A[s-1])
         #endfor
     #endfor
-    return A
+    # output opt_recv_plan and its util value
+    return (opt_plan, Z[set(range(V))])
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
