@@ -247,7 +247,8 @@ def DP_optimal(G, independent_nodes, resources):
             adj_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
             print(adj_nodes)
             for v_i in adj_nodes:
-                sum_demands = sum([demand[int(v_j)] for v_j in v_js])
+                # take the sum of demands of the remaining nodes after the recovery of v_i (V - {v_i})
+                sum_demands = sum([demand[int(v_j)] for v_j in v_js if int(v_j) != int(v_i)])
                 q_ = math.ceil((util[int(v_i)] * sum_demands) / C) + Z[hashable_set((set(X) - set([v_i]))).__hash__()]
 
                 if q_ > q:
