@@ -220,18 +220,17 @@ def DP_optimal(G, independent_nodes, resources):
     :param resources: resources per turn
     :return: ordering O = [v1, v2, ..., vn] where vn = |V(G)| of nodes to recover for a star
     '''
-    class hashable_set:
-        def __init__(self, set):
-            self.set = set
-
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
-    print
     V = G.number_of_nodes()
+
     # note: use (V+1) in range since it is not inclusive
     vertex_set = set(range(V))
     C = resources
     Z = {}
+    # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
+    # save the emptyset
+    Z[(frozenset([])).__hash__()] = 0
     A = [-1 for x in range(V)]
     A[0] = 0
 
@@ -241,23 +240,22 @@ def DP_optimal(G, independent_nodes, resources):
         for X in s_node_subsets:
             q = float('-inf')
             v_js = vertex_set - set(X)
-            print(v_js)
             # generate list of functional nodes
             functional_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
-            print(functional_nodes)
+            
             for v_i in functional_nodes:
                 sum_demands = sum([demand[int(v_j)] for v_j in v_js])
-                q_ = math.ceil((util[int(v_i)] * sum_demands) / C) + Z[hashable_set((set(X) - set([v_i]))).__hash__()]
+                q_ = math.ceil((util[v_i] * sum_demands) / C) + Z[(frozenset(X) - frozenset([v_i])).__hash__()]
 
                 if q_ > q:
                     q = q_
                     A[s] = X
                 #endif
             #endfor
-            Z[hashable_set(set(X)).__hash__()] = q
+            Z[(frozenset(X)).__hash__()] = q
         #endfor
     #endfor
-    return A
+    return max(Z.values())
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
