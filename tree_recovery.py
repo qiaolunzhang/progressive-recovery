@@ -218,44 +218,65 @@ def DP_optimal(G, independent_nodes, resources):
     :param G: networkx graph with attributes "util" and "demand" for each node
     :param independent_nodes: already functional nodes of the problem
     :param resources: resources per turn
-    :return: ordering O = [v1, v2, ..., vn] where vn = |V(G)| of nodes to recover for a star
+    :return: opt_recv_plan (a sequence of nodes) and its util value
     '''
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
     V = G.number_of_nodes()
 
     # note: use (V+1) in range since it is not inclusive
-    vertex_set = set(range(V))
+    vertex_set = frozenset(range(V))
     C = resources
     Z = {}
     # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
     # save the emptyset
     Z[(frozenset([])).__hash__()] = 0
-    A = [-1 for x in range(V)]
-    A[0] = 0
+    A = [frozenset([]) for x in range(V+1)]
+    opt_plan = [-1 for x in range(V)] # sequence of nodes
+    # A[0] is emptyset
+    #A[0] = frozenset([])
 
-    for s in range(1, V):
+    for s in range(1, V+1):
         # generate all |s| size subsets
         s_node_subsets = list(itertools.combinations((range(V)), s))
         for X in s_node_subsets:
             q = float('-inf')
-            v_js = vertex_set - set(X)
-            # generate list of functional nodes
-            functional_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+            #v_js : a set of functional nodes
+            v_js = vertex_set - frozenset(X)
             
-            for v_i in functional_nodes:
-                sum_demands = sum([demand[int(v_j)] for v_j in v_js])
+            # generate list of nodes adjacent to any functional nodes
+            adj_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+            print('adj:', adj_nodes)
+            for v_i in adj_nodes:
+                sum_demands = sum([demand[int(v_j)] for v_j in v_js if int(v_j) != int(v_i)])
                 q_ = math.ceil((util[v_i] * sum_demands) / C) + Z[(frozenset(X) - frozenset([v_i])).__hash__()]
 
                 if q_ > q:
                     q = q_
-                    A[s] = X
+                    A[s] = frozenset(X)
                 #endif
             #endfor
+
             Z[(frozenset(X)).__hash__()] = q
+            # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
+            # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
+            print(A[s], A[s-1])
+            opt_plan[(V-s)] = A[s] - A[s-1]
+            print(opt_plan[V-s])
         #endfor
     #endfor
-    return max(Z.values())
+    
+    # output opt_recv_plan and its util value
+    return (opt_plan, Z)
+
+def recover_hash(d, num_nodes):
+    for s in range(1, num_nodes+1):
+        s_node_subsets = list(itertools.combinations((range(num_nodes)), s))
+        for subset in s_node_subsets:
+            try:
+                print("t", subset, d[(frozenset(subset))])
+            except:
+                continue
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
