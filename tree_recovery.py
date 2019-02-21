@@ -206,8 +206,10 @@ def plot_bar_x(data, label, dir):
     plt.plot(index, data)
     plt.xlabel('Number of Nodes')
     plt.ylabel('Total utility in Percentage of Optimal')
+    # plt.ylabel('Time to compute optimal (seconds)')
     plt.xticks(index, label)
     plt.title('U-D Heuristic: % of Optimal (Sampled)')
+    # plt.title('Time to Compute Optimal Configuration for Tree of Size N')
 
     plt.savefig(dir)
 
@@ -221,51 +223,57 @@ def DP_optimal(G, independent_nodes, resources):
     :return: opt_recv_plan (a sequence of nodes) and its util value
     '''
 
-    print("Graph:", G.edges())
+    # util and demand dicts
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
+
+    # remove independent nodes from potential nodes to recover
     V = G.number_of_nodes() - len(independent_nodes)
+    C = resources
+
+    # Warning checker
+    already_warned = False
+    for d_vj in demand.values():
+        for d_vi in demand.values():
+            if d_vj != d_vi and (d_vj + d_vi <= (2*C - 1)) and not already_warned:
+                print("WARNING ========================")
+                print("Calculation of optimal may not be correct")
+                print("Please make sure demand(vj) + demand(vi) <= 2C - 1 for all pairs (vj, vi) in G")
+                print(d_vj, "+", d_vi, "<=", 2*C - 1, "\n")
+                already_warned = True
 
     # note: use (V+1) in range since it is not inclusive
     vertex_set = frozenset(range(G.number_of_nodes())) - frozenset(independent_nodes)
-    print(vertex_set)
-    C = resources
+   
     Z = {}
     # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
     # save the emptyset
     Z[(frozenset([])).__hash__()] = 0
     A = [frozenset([]) for x in range(V+1)]
-    opt_plan = [-1 for x in range(V)] # sequence of nodes
-    # A[0] is emptyset
-    #A[0] = frozenset([])
+
+    # the optimal sequence of nodes
+    opt_plan = [-1 for x in range(V)]
 
     for s in range(1, V+1):
         # generate all |s| size subsets
         s_node_subsets = list(itertools.combinations(list(vertex_set), s))
-        print("s_node_sub:", s_node_subsets)
         for X in s_node_subsets:
             #v_js : a set of functional nodes
-            v_js = vertex_set - frozenset(X)
-            if len(v_js) == 0:
-                v_js = independent_nodes
-            print("v_js:",v_js)
+            v_js = frozenset(range(G.number_of_nodes())) - frozenset(X)
             
             # generate list of nodes adjacent to any functional nodes
             adj_nodes = []
-            #= [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
 
             for v_i in X:
                 for v_j in v_js:
                     if G.has_edge(v_i, v_j) and (v_i not in adj_nodes):
                         adj_nodes.append(v_i)
 
-            print("X:", X)
-            print('adj:', adj_nodes)
-            q = float(0)
+            # init q to < 0
+            q = float(-1)
             for v_i in adj_nodes:
                 sum_demands = sum([demand[int(v_j)] for v_j in X if int(v_j) != int(v_i)])
-                q_ = math.ceil((util[v_i] * sum_demands) / C) + Z[(frozenset(X) - frozenset([v_i])).__hash__()]
-                print("q_:", q_)
+                q_ = util[v_i] * (1 + math.ceil(sum_demands / C)) + Z[(frozenset(X) - frozenset([v_i])).__hash__()]
 
                 if q_ > q:
                     q = q_
@@ -274,26 +282,20 @@ def DP_optimal(G, independent_nodes, resources):
             #endfor
 
             Z[(frozenset(X)).__hash__()] = q
-            # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
-            # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
         #endfor
-        print("A: ", A[s], A[s-1])
-        print("best util with s:", Z[A[s].__hash__()])
+
+        # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
+        # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
         opt_plan[(V-s)] = A[s] - A[s-1]
-        print(opt_plan[V-s])
     #endfor
     
-    # output opt_recv_plan and its util value
-    return (opt_plan,Z[vertex_set.__hash__()])
+    print(opt_plan)
+    # convert opt_plan from list of singleton sets to list of nodes
+    opt_plan = [list(element)[0] for element in opt_plan]
+    opt_plan.reverse()
 
-def recover_hash(d, num_nodes):
-    for s in range(1, num_nodes+1):
-        s_node_subsets = list(itertools.combinations((range(num_nodes)), s))
-        for subset in s_node_subsets:
-            try:
-                print("t", subset, d[(frozenset(subset))])
-            except:
-                continue
+    # reinclude independent nodes in beginning of recovery plan
+    return (independent_nodes + opt_plan, Z[vertex_set.__hash__()])
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''
