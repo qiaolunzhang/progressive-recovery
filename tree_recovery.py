@@ -8,7 +8,7 @@ import os, shutil
 import itertools
 import time
 import sys
-from progress.bar import Bar
+#from progress.bar import Bar
 import math
 import multiprocessing
 
@@ -220,12 +220,15 @@ def DP_optimal(G, independent_nodes, resources):
     :param resources: resources per turn
     :return: opt_recv_plan (a sequence of nodes) and its util value
     '''
+
+    print("Graph:", G.edges())
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
-    V = G.number_of_nodes()
+    V = G.number_of_nodes() - len(independent_nodes)
 
     # note: use (V+1) in range since it is not inclusive
-    vertex_set = frozenset(range(V))
+    vertex_set = frozenset(range(G.number_of_nodes())) - frozenset(independent_nodes)
+    print(vertex_set)
     C = resources
     Z = {}
     # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
@@ -238,18 +241,31 @@ def DP_optimal(G, independent_nodes, resources):
 
     for s in range(1, V+1):
         # generate all |s| size subsets
-        s_node_subsets = list(itertools.combinations((range(V)), s))
+        s_node_subsets = list(itertools.combinations(list(vertex_set), s))
+        print("s_node_sub:", s_node_subsets)
         for X in s_node_subsets:
-            q = float('-inf')
             #v_js : a set of functional nodes
             v_js = vertex_set - frozenset(X)
+            if len(v_js) == 0:
+                v_js = independent_nodes
+            print("v_js:",v_js)
             
             # generate list of nodes adjacent to any functional nodes
-            adj_nodes = [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+            adj_nodes = []
+            #= [v_i for v_i in X for v_j in v_js if G.has_edge(v_i, v_j)]
+
+            for v_i in X:
+                for v_j in v_js:
+                    if G.has_edge(v_i, v_j) and (v_i not in adj_nodes):
+                        adj_nodes.append(v_i)
+
+            print("X:", X)
             print('adj:', adj_nodes)
+            q = float(0)
             for v_i in adj_nodes:
-                sum_demands = sum([demand[int(v_j)] for v_j in v_js if int(v_j) != int(v_i)])
+                sum_demands = sum([demand[int(v_j)] for v_j in X if int(v_j) != int(v_i)])
                 q_ = math.ceil((util[v_i] * sum_demands) / C) + Z[(frozenset(X) - frozenset([v_i])).__hash__()]
+                print("q_:", q_)
 
                 if q_ > q:
                     q = q_
@@ -260,14 +276,15 @@ def DP_optimal(G, independent_nodes, resources):
             Z[(frozenset(X)).__hash__()] = q
             # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
             # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
-            print(A[s], A[s-1])
-            opt_plan[(V-s)] = A[s] - A[s-1]
-            print(opt_plan[V-s])
         #endfor
+        print("A: ", A[s], A[s-1])
+        print("best util with s:", Z[A[s].__hash__()])
+        opt_plan[(V-s)] = A[s] - A[s-1]
+        print(opt_plan[V-s])
     #endfor
     
     # output opt_recv_plan and its util value
-    return (opt_plan, Z)
+    return (opt_plan,Z[vertex_set.__hash__()])
 
 def recover_hash(d, num_nodes):
     for s in range(1, num_nodes+1):

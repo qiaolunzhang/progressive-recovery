@@ -34,7 +34,7 @@ def main():
     G = r_tree(4)
     R = RecoveryEnv(G, [get_root(G)])
 
-    print("Optimal util by DP:", DP_optimal(G, [0], 1))
+    print("Optimal util by DP:", DP_optimal(G, [get_root(G)], 1))
     print("=============================================")
     print("Optimal util and config by verified method", R.optimal(resources=1))
 
