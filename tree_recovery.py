@@ -218,9 +218,9 @@ def DP_optimal(G, independent_nodes, resources):
     DP algorithm calculating optimal recovery utility
 
     :param G: networkx graph with attributes "util" and "demand" for each node
-    :param independent_nodes: already functional nodes of the problem
+    :param independent_nodes: already functional nodes of the problem, assumed to be list of nodes in G
     :param resources: resources per turn
-    :return: opt_recv_plan (a sequence of nodes) and its util value
+    :return: (max total util, recovery config) tuple
     '''
 
     # util and demand dicts
@@ -231,7 +231,7 @@ def DP_optimal(G, independent_nodes, resources):
     V = G.number_of_nodes() - len(independent_nodes)
     C = resources
 
-    # Warning checker
+    # Optimality checker warning
     already_warned = False
     for d_vj in demand.values():
         for d_vi in demand.values():
@@ -245,10 +245,12 @@ def DP_optimal(G, independent_nodes, resources):
     # note: use (V+1) in range since it is not inclusive
     vertex_set = frozenset(range(G.number_of_nodes())) - frozenset(independent_nodes)
    
+    # Init Z and B dicts, Z for saving and B for printing out config at end
     Z = {}
     B = {}
-    # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
-    # save the emptyset
+
+    # note: turns out you can only hash immutable objects, so we use "frozenset" instead of "set"
+    # save 0 utility at the emptyset hash
     Z[(frozenset([])).__hash__()] = 0
 
     for s in range(1, V+1):
@@ -260,7 +262,6 @@ def DP_optimal(G, independent_nodes, resources):
             
             # generate list of nodes adjacent to any functional nodes
             adj_nodes = []
-
             for v_i in X:
                 for v_j in v_js:
                     if G.has_edge(v_i, v_j) and (v_i not in adj_nodes):
@@ -282,13 +283,18 @@ def DP_optimal(G, independent_nodes, resources):
         #endfor
     #endfor
     
-    Y = set([])
+    # We know independent nodes are first to be recovered
     opt_plan = independent_nodes
+    Y = set([])
+
     while frozenset(Y) != vertex_set:
+        # append B[V \ Y]
         opt_plan.append(B[(vertex_set - frozenset(Y)).__hash__()])
+
+        # Y = Y \cup B[V \ Y]
         Y = Y | set([B[(vertex_set - frozenset(Y)).__hash__()]])
 
-    # reinclude independent nodes in beginning of recovery plan
+    # return (max total util, recovery config)
     return (Z[vertex_set.__hash__()], opt_plan)
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):

@@ -2,7 +2,6 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from tree_recovery import get_root, merge_nodes, r_tree, plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, par_max_util_configs, prune_map
-from progress.bar import Bar
 import multiprocessing
 
 # TODO:
@@ -54,10 +53,6 @@ class RecoveryEnv:
 
         if not include_independent_nodes:
             node_recovery_index += len(self.independent_nodes)
-
-        # DEBUG
-        # print('Root node income: ', utils[root] - demand[root])
-        # print('Root node index: ', root)
 
         # keep a copy of our graph to plot change over time/ recovery order more intuitively
         H = self.network.copy()
@@ -141,14 +136,7 @@ class RecoveryEnv:
         '''
         # get the possible maximum utility configs
         configs = par_get_configs(self.network, self.independent_nodes)
-        print(configs)
         max_total_utility = 0; max_config = None
-
-        print(len(configs), ' maximum utility configs need to be checked.\n')
-        print('Finding max util...')
-
-        # progress bar
-        bar = Bar('Simulating Configurations', max=len(configs))
 
         # check for greatest
         for config in configs:
@@ -157,15 +145,12 @@ class RecoveryEnv:
             if config_util > max_total_utility:
                 max_config = config
                 max_total_utility = config_util
-            bar.next()
-
-        bar.finish()
 
         return max_total_utility, max_config
 
 
 # Helper functions
-# ================================================================================================== #
+# =========================================================
 def deviation_from_optimal(nodes, resources, height=None):
     '''
     Construct simple example to find optimal recovery config
