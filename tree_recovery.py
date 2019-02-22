@@ -246,13 +246,10 @@ def DP_optimal(G, independent_nodes, resources):
     vertex_set = frozenset(range(G.number_of_nodes())) - frozenset(independent_nodes)
    
     Z = {}
+    B = {}
     # note: turns out you can only has immutable objects, so we use frozenset instead (immutable, can hash in dict)
     # save the emptyset
     Z[(frozenset([])).__hash__()] = 0
-    A = [frozenset([]) for x in range(V+1)]
-
-    # the optimal sequence of nodes
-    opt_plan = [-1 for x in range(V)]
 
     for s in range(1, V+1):
         # generate all |s| size subsets
@@ -277,25 +274,22 @@ def DP_optimal(G, independent_nodes, resources):
 
                 if q_ > q:
                     q = q_
-                    A[s] = frozenset(X)
+                    B[frozenset(X).__hash__()] = v_i
                 #endif
             #endfor
 
             Z[(frozenset(X)).__hash__()] = q
         #endfor
-
-        # The node missing in A[s-1] from A[s] is the node recovered at the previous time step
-        # DP finds the OPT seq in reversed order, so stores it in a reversed way (V-s)
-        opt_plan[(V-s)] = A[s] - A[s-1]
     #endfor
     
-    print(opt_plan)
-    # convert opt_plan from list of singleton sets to list of nodes
-    opt_plan = [list(element)[0] for element in opt_plan]
-    opt_plan.reverse()
+    Y = set([])
+    opt_plan = independent_nodes
+    while frozenset(Y) != vertex_set:
+        opt_plan.append(B[(vertex_set - frozenset(Y)).__hash__()])
+        Y = Y | set([B[(vertex_set - frozenset(Y)).__hash__()]])
 
     # reinclude independent nodes in beginning of recovery plan
-    return (independent_nodes + opt_plan, Z[vertex_set.__hash__()])
+    return (Z[vertex_set.__hash__()], opt_plan)
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
     '''

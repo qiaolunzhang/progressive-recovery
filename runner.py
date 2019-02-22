@@ -38,15 +38,16 @@ def heuristic_tester(node_range, sample_size, save_dir, resources=1, height=None
 
 def main():
     # generate random tree with 4 nodes
-    G = r_tree(4)
+    G = r_tree(10)
     R = RecoveryEnv(G, [get_root(G)])
 
-    print("Optimal util by DP:", DP_optimal(G, [get_root(G)], 1))
-    print("=============================================")
     print("Optimal util and config by verified method", R.optimal(resources=1))
     print("\nPlotting graph in 'plots/DP.png'")
     plot_graph(G, get_root(G), 'plots/DP.png')
     
+    print("Optimal util by DP:", DP_optimal(G, [get_root(G)], 1))
+    print("=============================================")
+
     # times = heuristic_tester(node_range=(4,11), sample_size=50, save_dir='plots/heuristic_optimality.png')    
     # print(times)
     # G = r_tree(8)
