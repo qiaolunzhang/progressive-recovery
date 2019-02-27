@@ -29,22 +29,22 @@ class env:
 		:return: state, reward, done
 		'''
 		utils = nx.get_node_attributes(self.G, 'util')
-    	demand = nx.get_node_attributes(self.G, 'demand')
+		demand = nx.get_node_attributes(self.G, 'demand')
 
-    	demand = [min(demand[x] - action[x], 0) for x in range(len(action))]
-    	self.state = [1 for x in range(len(action)) if demand[x] == 0 else 0]
+		demand = [min(demand[x] - action[x], 0) for x in range(len(action))]
+		self.state = [1 for x in range(len(action)) if demand[x] == 0 else 0]
 
-    	# update demand values in our current graph
-    	nx.set_node_attributes(self.G, name='demand', values=demand)
+		# update demand values in our current graph
+		nx.set_node_attributes(self.G, name='demand', values=demand)
 
-    	# utility at this time step is reward
-    	reward = sum([utils[x] * demand[x] for x in range(len(action))])
+		# utility at this time step is reward
+		reward = sum([utils[x] * demand[x] for x in range(len(action))])
 
-    	# check if we are finished with this episode
-    	if self.state == [1 for x in self.state]:
-    		self.done = True
+		# check if we are finished with this episode
+		if self.state == [1 for x in self.state]:
+			self.done = True
 
-    	return self.state, reward, self.done
+		return self.state, reward, self.done
 
 	def reset():
 		'''
