@@ -221,4 +221,3 @@ if __name__ == '__main__':
               #print(player.V)
       play_game(player, Environment(), display)
   print(player.V)
-  
