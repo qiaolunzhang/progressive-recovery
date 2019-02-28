@@ -5,6 +5,24 @@ Uses two neural networks with 3 layers each
 
 import tensorflow as tf
 import numpy as np
+import random
+import networkx
+
+def random_action(n, resources):
+    '''
+    Generate a random action (n-length vector) where the sum of all the elements = resources
+
+    :param n: Length of action vector
+    :param resources: sum of all elements of vector
+    :return: n - length random vector
+    '''
+    action = [0 for x in range(n)]
+
+    while sum(action) <= resources:
+        index = random.randint(0,n-1)
+        action[index] += 1
+
+    return np.array(action)
 
 
 class DeepQNetwork:
@@ -12,6 +30,7 @@ class DeepQNetwork:
         self,
         n_y,
         n_x,
+        resources,
         learning_rate=0.01,
         replace_target_iter=100,
         memory_size=1000,
@@ -23,8 +42,12 @@ class DeepQNetwork:
         save_path=None
     ):
 
+        # n_y is action space
         self.n_y = n_y
+        # n_x is state space
         self.n_x = n_x
+
+        self.resources = resources
         self.lr = learning_rate
         self.epsilon_min = epsilon_min
         self.replace_target_iter = replace_target_iter
@@ -88,7 +111,7 @@ class DeepQNetwork:
 
     def choose_action(self, observation):
         # Reshape to (num_features, 1)
-        observation = observation[ :,np.newaxis ]
+        # observation = observation[ :, np.newaxis ]
 
         # If random sample from uniform distribution is less than the epsilon parameter then predict action, else take a random action
         if np.random.uniform() > self.epsilon:
@@ -99,7 +122,7 @@ class DeepQNetwork:
             action = np.argmax(actions_q_value)
         else:
             # Random action
-            action = np.random.randint(0, self.n_y)
+            action = random_action(self.n_y, self.resources)
 
         return action
 

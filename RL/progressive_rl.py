@@ -1,20 +1,23 @@
-"""
-Deep Q Network
-CartPole-v0
-"""
-
-import gym
 from deep_q_network import DeepQNetwork
-from rl_env import env
+from rl_env import rl_env
+import networkx as nx
+from tree_recovery import r_tree, get_root, DP_optimal
 
 # Load checkpoint
-load_path = "weights/CartPole-v0.ckpt"
-save_path = "weights/CartPole-v0-2.ckpt"
+load_path = "model/weights.ckpt"
+save_path = "model/weights.ckpt"
+
+num_nodes = 8
+resources = 1
+
+G = r_tree(num_nodes)
+env = rl_env(r_tree, [get_root(G)], num_nodes)
 
 # Initialize DQN
 DQN = DeepQNetwork(
-    n_y=env.action_space.n,
-    n_x=env.observation_space.shape[0],
+    n_y=num_nodes,
+    n_x=num_nodes,
+    resources=resources,
     learning_rate=0.01,
     replace_target_iter=100,
     memory_size=2000,
@@ -27,12 +30,9 @@ DQN = DeepQNetwork(
 )
 
 
-RENDER_ENV = True
-EPISODES = 10000
+EPISODES = 1000
 rewards = []
-RENDER_REWARD_MIN = 800
 total_steps_counter = 0
-
 
 for episode in range(EPISODES):
 
@@ -40,8 +40,6 @@ for episode in range(EPISODES):
     episode_reward = 0
 
     for _ in range(200):
-        if RENDER_ENV: env.render()
-
         # 1. Choose an action based on observation
         action = DQN.choose_action(observation)
 
@@ -74,9 +72,6 @@ for episode in range(EPISODES):
             print("Epsilon: ", round(DQN.epsilon,2))
             print("Max reward so far: ", max_reward_so_far)
 
-            # Render env if we get to rewards minimum
-            if max_reward_so_far > RENDER_REWARD_MIN: RENDER_ENV = True
-
             break
 
         # Save observation
@@ -85,4 +80,4 @@ for episode in range(EPISODES):
         # Increase total steps
         total_steps_counter += 1
 
-# DQN.plot_cost()
+print("Optimal:", DP_optimal(G, [get_root(G)], resources))
