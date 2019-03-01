@@ -18,8 +18,8 @@ def random_action(n, resources):
     '''
     action = [0 for x in range(n)]
 
-    while sum(action) <= resources:
-        index = random.randint(0,n-1)
+    while sum(action) < resources:
+        index = random.randint(0, n-1)
         action[index] += 1
 
     return np.array(action)
@@ -67,7 +67,7 @@ class DeepQNetwork:
 
         # Initialize memory
         self.memory_s = np.zeros((n_x,self.memory_size))
-        self.memory_a = np.zeros((self.memory_size))
+        self.memory_a = np.zeros((n_y,self.memory_size))
         self.memory_r = np.zeros((self.memory_size))
         self.memory_s_ = np.zeros((n_x,self.memory_size))
 
@@ -103,7 +103,7 @@ class DeepQNetwork:
         index = self.memory_counter % self.memory_size
 
         self.memory_s[:,index] = s
-        self.memory_a[index] = a
+        self.memory_a[:,index] = a
         self.memory_r[index] = r
         self.memory_s_[:,index] = s_
 
@@ -150,7 +150,9 @@ class DeepQNetwork:
         sample_index = np.random.choice(index_range, size=self.batch_size)
 
         batch_memory_s = self.memory_s[ :,sample_index ]
-        batch_memory_a = self.memory_a[ sample_index ]
+        print('state memory', batch_memory_s)
+        batch_memory_a = self.memory_a[ :,sample_index ]
+        print(batch_memory_a)
         batch_memory_r = self.memory_r[ sample_index ]
         batch_memory_s_ = self.memory_s_[ :,sample_index ]
 
@@ -168,9 +170,11 @@ class DeepQNetwork:
 
         # Get memory actions
         actions_index = batch_memory_a.astype(int)
-
+        print('Q target outputs', q_target_outputs)
+        #print('action index', actions_index, 'batch index', batch_index)
+        #print(q_target_outputs[ actions_index, batch_index ])
         # Generate Q target values with Bellman equation
-        q_target_outputs[ actions_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
+        q_target_outputs[ sample_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
 
         # Train eval network
         _, self.cost = self.sess.run([self.train_op, self.loss], feed_dict={ self.X: batch_memory_s, self.Y: q_target_outputs } )

@@ -1,17 +1,19 @@
 from deep_q_network import DeepQNetwork
-from rl_env import rl_env
+from rl_env import environment
 import networkx as nx
-from tree_recovery import r_tree, get_root, DP_optimal
+from tree_recovery import r_tree, get_root, DP_optimal, plot_graph
+import numpy as np
 
 # Load checkpoint
 load_path = "model/weights.ckpt"
 save_path = "model/weights.ckpt"
 
-num_nodes = 8
+num_nodes = 7
 resources = 1
 
 G = r_tree(num_nodes)
-env = rl_env(r_tree, [get_root(G)], num_nodes)
+plot_graph(G, get_root(G), 'rl_graph.png')
+env = environment(G, [get_root(G)], resources)
 
 # Initialize DQN
 DQN = DeepQNetwork(
@@ -29,6 +31,7 @@ DQN = DeepQNetwork(
     # save_path=save_path
 )
 
+print("Optimal:", DP_optimal(G, [get_root(G)], resources))
 
 EPISODES = 1000
 rewards = []
@@ -36,29 +39,23 @@ total_steps_counter = 0
 
 for episode in range(EPISODES):
 
-    observation = env.reset()
+    observation, done = env.reset()
     episode_reward = 0
 
-    for _ in range(200):
+    while not done:
         # 1. Choose an action based on observation
         action = DQN.choose_action(observation)
-
+        print('Chosen action', action)
         # 2. Take the chosen action in the environment
-        observation_, reward, done, info = env.step(action)
-
-        # x, x_dot, theta, theta_dot = observation_
-        # r1 = (env.x_threshold - abs(x))/env.x_threshold - 0.8
-        # r2 = (env.theta_threshold_radians - abs(theta))/env.theta_threshold_radians - 0.5
-        # reward = r1 + r2
-        #
-        # print(reward)
+        observation_, reward, done = env.step(action)
+        print(observation_, reward, done)
 
         # 3. Store transition
         DQN.store_transition(observation, action, reward, observation_)
 
         episode_reward += reward
 
-        if total_steps_counter > 1000:
+        if total_steps_counter > 100:
             # 4. Train
             DQN.learn()
 
