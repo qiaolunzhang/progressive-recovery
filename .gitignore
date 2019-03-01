@@ -1,3 +1,6 @@
 plots/*
 RL/weights/
 RL/logs/
+RL/rl_graph.png
+__pycache__
+RL/__pycache__
