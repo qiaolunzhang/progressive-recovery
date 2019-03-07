@@ -111,19 +111,21 @@ class DeepQNetwork:
 
     def choose_action(self, observation):
         # Reshape to (num_features, 1)
-        # observation = observation[ :, np.newaxis ]
+        observation = np.array(observation)
+        observation = observation[ :, np.newaxis ]
 
         # If random sample from uniform distribution is less than the epsilon parameter then predict action, else take a random action
         if np.random.uniform() > self.epsilon:
             # Forward propagate to get q values of outputs
+            #print('observation', observation)
             actions_q_value = self.sess.run(self.q_eval_outputs, feed_dict={self.X: observation})
-            print('q_val', actions_q_value)
+            #print('q_val', actions_q_value)
 
             # Get index of maximum q value
             action = np.argmax(actions_q_value)
         else:
-            # Random action
-            action = random_action(self.n_y, self.resources)
+            # Random action, handled by the environment when given -1 input
+            action = -1
 
         return action
 
@@ -169,11 +171,11 @@ class DeepQNetwork:
 
         # Get memory actions
         actions_index = batch_memory_a.astype(int)
-        print('Q target outputs', q_target_outputs)
+        #print('Q target outputs', q_target_outputs)
         #print('action index', actions_index, 'batch index', batch_index)
         #print(q_target_outputs[ actions_index, batch_index ])
         # Generate Q target values with Bellman equation
-        q_target_outputs[ sample_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
+        q_target_outputs[ actions_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
 
         # Train eval network
         _, self.cost = self.sess.run([self.train_op, self.loss], feed_dict={ self.X: batch_memory_s, self.Y: q_target_outputs } )
