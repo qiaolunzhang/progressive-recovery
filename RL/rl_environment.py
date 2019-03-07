@@ -36,7 +36,7 @@ class environment:
         '''
         Applies a partition of resources to the graph G
 
-        :param action: |V(G)| len vector, where sum(action) == resources at a time step
+        :param action: index to a specific |V(G)| len vector, where sum(action) == resources at a time step
         :return: state, reward, done
         '''
         utils = nx.get_node_attributes(self.G_constant, 'util')

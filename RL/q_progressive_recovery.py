@@ -1,5 +1,5 @@
 from deep_q_network import DeepQNetwork
-from rl_env import environment
+from rl_environment import environment
 import networkx as nx
 from tree_recovery import r_tree, get_root, DP_optimal, plot_graph
 import numpy as np

@@ -67,7 +67,7 @@ class DeepQNetwork:
 
         # Initialize memory
         self.memory_s = np.zeros((n_x,self.memory_size))
-        self.memory_a = np.zeros((n_y,self.memory_size))
+        self.memory_a = np.zeros((self.memory_size))
         self.memory_r = np.zeros((self.memory_size))
         self.memory_s_ = np.zeros((n_x,self.memory_size))
 
@@ -103,7 +103,7 @@ class DeepQNetwork:
         index = self.memory_counter % self.memory_size
 
         self.memory_s[:,index] = s
-        self.memory_a[:,index] = a
+        self.memory_a[index] = a
         self.memory_r[index] = r
         self.memory_s_[:,index] = s_
 
@@ -117,6 +117,7 @@ class DeepQNetwork:
         if np.random.uniform() > self.epsilon:
             # Forward propagate to get q values of outputs
             actions_q_value = self.sess.run(self.q_eval_outputs, feed_dict={self.X: observation})
+            print('q_val', actions_q_value)
 
             # Get index of maximum q value
             action = np.argmax(actions_q_value)
@@ -150,9 +151,7 @@ class DeepQNetwork:
         sample_index = np.random.choice(index_range, size=self.batch_size)
 
         batch_memory_s = self.memory_s[ :,sample_index ]
-        print('state memory', batch_memory_s)
-        batch_memory_a = self.memory_a[ :,sample_index ]
-        print(batch_memory_a)
+        batch_memory_a = self.memory_a[ sample_index ]
         batch_memory_r = self.memory_r[ sample_index ]
         batch_memory_s_ = self.memory_s_[ :,sample_index ]
 
