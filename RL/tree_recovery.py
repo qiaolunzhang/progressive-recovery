@@ -297,7 +297,7 @@ def DP_optimal(G, independent_nodes, resources):
     # return (max total util, recovery config)
     return (Z[vertex_set.__hash__()], opt_plan)
 
-def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, debug=False):
+def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, debug=False, clean=True):
     '''
     |U - d| -- Heuristic
     Simulates recovery of a tree, starting at the root (independent) node. Assumes
@@ -311,17 +311,19 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=True, de
     :param resources: Number of resources per time step
     :param draw: If true, plot graph at each step.
     :param debug: output logs to std.out
+    :param clean: Clean image dir before drawing image
     :return: root of G
     '''
-    # clean image dir
-    folder = 'plots/trees'
-    for the_file in os.listdir(folder):
-        file_path = os.path.join(folder, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print(e)
+    if clean:
+        # clean image dir
+        folder = 'plots/trees'
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(e)
 
     # current and total utility are both 0 to begin
     current_utility = 0

@@ -1,12 +1,6 @@
-"""
-Deep Q Network Reinforcement Learning
-Uses two neural networks with 3 layers each
-"""
-
 import tensorflow as tf
 import numpy as np
 import random
-import networkx
 
 def random_action(n, resources):
     '''
@@ -60,10 +54,7 @@ class DeepQNetwork:
         self.memory_counter = 0
         self.learn_step_counter = 0
 
-        if epsilon_greedy_decrement is not None:
-            self.epsilon = 1
-        else:
-            self.epsilon = self.epsilon_min
+        self.epsilon = 1
 
         # Initialize memory
         self.memory_s = np.zeros((n_x,self.memory_size))
@@ -72,8 +63,8 @@ class DeepQNetwork:
         self.memory_s_ = np.zeros((n_x,self.memory_size))
 
         # Config for networks
-        n_l1 = 10
-        n_l2 = 10
+        n_l1 = 100
+        n_l2 = 100
         W_init = tf.contrib.layers.xavier_initializer(seed=1)
         b_init = tf.contrib.layers.xavier_initializer(seed=1)
         self.build_eval_network(n_l1, n_l2, W_init, b_init)
@@ -174,6 +165,7 @@ class DeepQNetwork:
         #print('Q target outputs', q_target_outputs)
         #print('action index', actions_index, 'batch index', batch_index)
         #print(q_target_outputs[ actions_index, batch_index ])
+
         # Generate Q target values with Bellman equation
         q_target_outputs[ actions_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
 

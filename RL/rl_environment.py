@@ -38,18 +38,54 @@ class environment:
 
     def random_action(self):
         '''
-        Random action that does not saturate and is adjacent to a functional node
+        @@ TODO: fix the random action for the first action taken in an episode
+        Random action that does not saturate and is guaranteed to be adjacent to a functional node
+
+        :return: random action index in self.actions_permutations
         '''
-        
-        return 1
+        # get demand values of our graph
+        demand = nx.get_node_attributes(self.G_constant, 'demand')
+
+        functional_nodes = []
+        for node in self.G:
+            for id_node in self.independent_nodes:
+                if nx.has_path(self.G, id_node, node) and id_node != node:
+                    functional_nodes.append(node)
+
+        # possible nodes must be adjacent to either functional or independent nodes
+        adjacent_to = functional_nodes + self.independent_nodes
+        adjacent_to = list(set(adjacent_to))
+
+        #print('adjto', adjacent_to)
+        possible_recovery = []
+        for adj_node in adjacent_to:
+            for node in range(self.number_of_nodes):
+                if node in self.G_constant.neighbors(adj_node) and node != adj_node and demand[node] > 0:
+                    possible_recovery.append(node)
+
+        possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
+        #print(possible_recovery)
+
+        # if we have only a single option to recover, naively choose it
+        if len(possible_recovery) == 1:
+            random_index_list = list(range(self.number_of_nodes))
+            random_index_list.pop(random_index_list.index(possible_recovery[0]))
+            random_action_choice = (possible_recovery[0], random.choice(random_index_list))
+
+        # otherwise, we take all our recovery options and take a random two
+        else:
+            random_action_list = list(itertools.permutations(possible_recovery, 2))
+            random_action_choice = random.choice(random_action_list)
+
+        return self.actions_permutations.index(random_action_choice)
 
 
     def convert_action(self, action):
         '''
         Given an action a, which is an index into a permutation list of length num_nodesP2, we return
-        the action represented as a vector to be applied to our demand dict. If action is -1, we take a random action.
+        the action represented as a vector to be applied to our demand dict.
 
-        :param action: index into list of permutations. If -1 => random action
+        :param action: index into list of permutations.
         :return: number_of_nodes length vector representing the action to be taken
         '''
         # check for a random action first
@@ -116,6 +152,7 @@ class environment:
 
         # convert demand back to dict
         demand = dict((i, demand[i]) for i in range(len(demand)))
+
         # update demand values in our current graph
         nx.set_node_attributes(self.G_constant, name='demand', values=demand)
 

@@ -1,7 +1,7 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
-from tree_recovery import r_tree, get_root, DP_optimal, plot_graph
+from tree_recovery import r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery
 import numpy as np
 import random
 import itertools
@@ -17,7 +17,7 @@ G = r_tree(num_nodes)
 
 plot_graph(G, get_root(G), 'rl_graph.png')
 env = environment(G, [get_root(G)], resources)
-n_y = len(list(itertools.permutations(range(num_nodes), 2)))
+n_y = len(env.actions_permutations)
 
 # Initialize DQN
 DQN = DeepQNetwork(
@@ -30,14 +30,12 @@ DQN = DeepQNetwork(
     batch_size=64,
     reward_decay=1,
     epsilon_min=0.1,
-    epsilon_greedy_decrement=0.001,
+    epsilon_greedy_decrement=0.0001,
     # load_path=load_path,
     # save_path=save_path
 )
 
-print("Optimal:", DP_optimal(G, [get_root(G)], resources))
-
-EPISODES = 1500
+EPISODES = 2000
 rewards = []
 total_steps_counter = 0
 
@@ -55,8 +53,7 @@ for episode in range(EPISODES):
 
         # check for random action
         if action == -1:
-            #action = env.random_action()
-            action = random.randint(0, n_y - 1)
+            action = env.random_action()
 
         # save the taken action
         action_sequence.append(action)
@@ -99,7 +96,7 @@ for episode in range(EPISODES):
 
 
 print("Optimal:", DP_optimal(G, [get_root(G)], resources))
-
+print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
 
 # TESTING
 # convert our best optimal action sequence to vector representation, test it for correctness
