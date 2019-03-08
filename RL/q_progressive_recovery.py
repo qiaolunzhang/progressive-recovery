@@ -15,7 +15,11 @@ num_nodes = 20
 resources = 1
 G = r_tree(num_nodes)
 
-plot_graph(G, get_root(G), 'rl_graph.png')
+try:
+    plot_graph(G, get_root(G), 'rl_graph.png')
+except:
+    print('No display')
+
 env = environment(G, [get_root(G)], resources)
 n_y = len(env.actions_permutations)
 
