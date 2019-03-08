@@ -77,8 +77,12 @@ class environment:
             random_action_list = list(itertools.permutations(possible_recovery, 2))
             random_action_choice = random.choice(random_action_list)
 
+        # we may want to return the list of random actions for the non-epsilon case
         if return_indices:
-            return random_action_list
+            if len(possible_recovery) is 1:
+                return [self.actions_permutations.index(random_action_choice)]
+            else:
+                return [self.actions_permutations.index(x) for x in random_action_list]
 
         else:
             return self.actions_permutations.index(random_action_choice)

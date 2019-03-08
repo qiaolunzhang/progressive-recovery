@@ -29,7 +29,7 @@ DQN = DeepQNetwork(
     replace_target_iter=100,
     memory_size=20000,
     batch_size=64,
-    reward_decay=0.9,
+    reward_decay=1,
     epsilon_min=0.2,
     epsilon_greedy_decrement=0.00001,
     # load_path=load_path,
@@ -69,7 +69,7 @@ for episode in range(EPISODES):
 
         episode_reward += reward
 
-        if total_steps_counter > 10000:
+        if total_steps_counter > 1000:
             # 4. Train
             DQN.learn()
 

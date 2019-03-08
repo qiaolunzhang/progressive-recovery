@@ -116,10 +116,11 @@ class DeepQNetwork:
 
             # get indices of possible actions
             indices = self.env.random_action(return_indices=True)
-
+            #print(indices)
             # now find the maximum value move among possible actions
             valid_q_values = [actions_q_value[x] for x in indices]
-            action = actions_q_value.index(max(valid_q_values))
+            action = np.where(actions_q_value==max(valid_q_values))[0][0]
+            #print('action', action)
             #action = np.argmax(actions_q_value)
         else:
             # Random action, handled by the environment when given -1 input
