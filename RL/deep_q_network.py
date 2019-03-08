@@ -63,8 +63,8 @@ class DeepQNetwork:
         self.memory_s_ = np.zeros((n_x,self.memory_size))
 
         # Config for networks
-        n_l1 = 100
-        n_l2 = 100
+        n_l1 = 1000
+        n_l2 = 1000
         W_init = tf.contrib.layers.xavier_initializer(seed=1)
         b_init = tf.contrib.layers.xavier_initializer(seed=1)
         self.build_eval_network(n_l1, n_l2, W_init, b_init)

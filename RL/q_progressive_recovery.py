@@ -11,7 +11,7 @@ load_path = "model/weights.ckpt"
 save_path = "model/weights.ckpt"
 
 # random graph
-num_nodes = 15
+num_nodes = 20
 resources = 1
 G = r_tree(num_nodes)
 
@@ -24,18 +24,18 @@ DQN = DeepQNetwork(
     n_y=n_y,
     n_x=num_nodes,
     resources=resources,
-    learning_rate=0.01,
+    learning_rate=0.1,
     replace_target_iter=100,
-    memory_size=2000,
+    memory_size=20000,
     batch_size=64,
-    reward_decay=1,
-    epsilon_min=0.1,
-    epsilon_greedy_decrement=0.0001,
+    reward_decay=0.9,
+    epsilon_min=0.2,
+    epsilon_greedy_decrement=0.00001,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 2000
+EPISODES = 25000
 rewards = []
 total_steps_counter = 0
 
@@ -68,7 +68,7 @@ for episode in range(EPISODES):
 
         episode_reward += reward
 
-        if total_steps_counter > 100:
+        if total_steps_counter > 10000:
             # 4. Train
             DQN.learn()
 
