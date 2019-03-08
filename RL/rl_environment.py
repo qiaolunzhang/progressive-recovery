@@ -36,7 +36,7 @@ class environment:
         # True when state is vector of 1's
         self.done = False
 
-    def random_action(self):
+    def random_action(self, return_indices=False):
         '''
         @@ TODO: fix the random action for the first action taken in an episode
         Random action that does not saturate and is guaranteed to be adjacent to a functional node
@@ -77,7 +77,11 @@ class environment:
             random_action_list = list(itertools.permutations(possible_recovery, 2))
             random_action_choice = random.choice(random_action_list)
 
-        return self.actions_permutations.index(random_action_choice)
+        if return_indices:
+            return random_action_list
+
+        else:
+            return self.actions_permutations.index(random_action_choice)
 
 
     def convert_action(self, action):

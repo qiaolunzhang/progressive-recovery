@@ -24,6 +24,7 @@ DQN = DeepQNetwork(
     n_y=n_y,
     n_x=num_nodes,
     resources=resources,
+    env=env,
     learning_rate=0.1,
     replace_target_iter=100,
     memory_size=20000,

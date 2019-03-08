@@ -25,6 +25,7 @@ class DeepQNetwork:
         n_y,
         n_x,
         resources,
+        env,
         learning_rate=0.01,
         replace_target_iter=100,
         memory_size=1000,
@@ -42,6 +43,7 @@ class DeepQNetwork:
         self.n_x = n_x
 
         self.resources = resources
+        self.env = env
         self.lr = learning_rate
         self.epsilon_min = epsilon_min
         self.replace_target_iter = replace_target_iter
@@ -112,8 +114,13 @@ class DeepQNetwork:
             actions_q_value = self.sess.run(self.q_eval_outputs, feed_dict={self.X: observation})
             #print('q_val', actions_q_value)
 
-            # Get index of maximum q value
-            action = np.argmax(actions_q_value)
+            # get indices of possible actions
+            indices = self.env.random_action(return_indices=True)
+
+            # now find the maximum value move among possible actions
+            valid_q_values = [actions_q_value[x] for x in indices]
+            action = actions_q_value.index(max(valid_q_values))
+            #action = np.argmax(actions_q_value)
         else:
             # Random action, handled by the environment when given -1 input
             action = -1
