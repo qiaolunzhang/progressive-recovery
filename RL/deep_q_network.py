@@ -119,7 +119,11 @@ class DeepQNetwork:
             #print(indices)
             # now find the maximum value move among possible actions
             valid_q_values = [actions_q_value[x] for x in indices]
-            action = np.where(actions_q_value==max(valid_q_values))[0][0]
+            try:
+                action = np.where(actions_q_value==max(valid_q_values))[0][0]
+            except:
+                print(np.where(actions_q_value==max(valid_q_values)))
+                action = np.where(actions_q_value==max(valid_q_values))[0]
             #print('action', action)
             #action = np.argmax(actions_q_value)
         else:

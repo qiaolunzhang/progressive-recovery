@@ -202,7 +202,7 @@ def plot_bar_x(data, label, dir):
     :param dir: directory to save plot
     :return: null
     '''
-    index = np.arange(len(label))
+    index = range(len(data))
     plt.plot(index, data)
     plt.xlabel('Number of Nodes')
     plt.ylabel('Total utility in Percentage of Optimal')

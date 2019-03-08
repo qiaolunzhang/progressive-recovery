@@ -1,7 +1,7 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
-from tree_recovery import r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery
+from tree_recovery import r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
 import numpy as np
 import random
 import itertools
@@ -33,16 +33,17 @@ DQN = DeepQNetwork(
     replace_target_iter=100,
     memory_size=20000,
     batch_size=64,
-    reward_decay=1,
+    reward_decay=0.5,
     epsilon_min=0.2,
     epsilon_greedy_decrement=0.00001,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 25000
+EPISODES = 10000
 rewards = []
 total_steps_counter = 0
+episodes_since_max = 0
 
 optimal_action_sequences = []
 
@@ -84,6 +85,7 @@ for episode in range(EPISODES):
             # if maximum reward so far, save the action sequence
             if episode_reward == max_reward_so_far:
                 optimal_action_sequences.append((action_sequence, episode_reward))
+                episodes_since_max = 0
 
             print("==========================================")
             print("Episode: ", episode)
@@ -98,6 +100,10 @@ for episode in range(EPISODES):
 
         # Increase total steps
         total_steps_counter += 1
+
+    episodes_since_max += 1
+    if episodes_since_max > 2000:
+        break
 
 
 print("Optimal:", DP_optimal(G, [get_root(G)], resources))
@@ -118,3 +124,4 @@ for action in opt:
     true_r += r
 
 print('reward during training:', reward, 'reward during testing:', true_r)
+plot_bar_x(rewards, 'episode', 'reward_graph.png')
