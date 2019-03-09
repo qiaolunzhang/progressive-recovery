@@ -5,13 +5,14 @@ from tree_recovery import r_tree, get_root, DP_optimal, plot_graph, simulate_tre
 import numpy as np
 import random
 import itertools
+from ratio_heuristic import ratio_heuristic
 
 # Load checkpoint
 load_path = "model/weights.ckpt"
 save_path = "model/weights.ckpt"
 
 # random graph
-num_nodes = 20
+num_nodes = 22
 resources = 1
 G = r_tree(num_nodes)
 
@@ -33,7 +34,7 @@ DQN = DeepQNetwork(
     replace_target_iter=100,
     memory_size=20000,
     batch_size=64,
-    reward_decay=0.5,
+    reward_decay=0.4,
     epsilon_min=0.2,
     epsilon_greedy_decrement=0.00001,
     # load_path=load_path,
@@ -108,6 +109,7 @@ for episode in range(EPISODES):
 
 print("Optimal:", DP_optimal(G, [get_root(G)], resources))
 print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
+print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
 
 # TESTING
 # convert our best optimal action sequence to vector representation, test it for correctness

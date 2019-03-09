@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from tree_recovery import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root
+from tree_recovery import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes
 
 # TODO:
 # 1. Test multiple independent nodes for optimality (we are only comparing against U-D heuristic
@@ -33,7 +33,6 @@ class RecoveryEnv:
 
         # keep track of what node we are currently recovering, starting from the root
         node_recovery_index = 0
-
         if draw:
             # clean image dir
             folder = 'plots/trees'
@@ -136,21 +135,34 @@ def ratio_heuristic(G, independent_nodes, resources):
     :param resources: resources per recovery time step
     :return: total utility of the ordered recovery sequence, excluding independent nodes
     '''
-    functional_nodes = independent_nodes
+    # set starting functional nodes to the given independent nodes
+    functional_nodes = independent_nodes.copy()
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
 
+    # we always start our recovery order with independent nodes
     ordered = functional_nodes.copy()
     while len(functional_nodes) is not G.number_of_nodes():
-        print(G.neighbors(functional_nodes[0]))
-        adj_nodes = [G.neighbors(func_node) for func_node in functional_nodes]
-        adj_nodes = list(set(adj_nodes))
-        print(adj_nodes)
+        # get a list of lists of neighbors for each functional node
+        adj = [list(G.neighbors(func_node)) for func_node in functional_nodes]
 
-        ratios = {node: util[node] / demand[node] for node in adj_nodes}
-        ordered.append(max(adj_nodes.iteritems(), key=operator.itemgetter(1))[0])
+        # flatten list
+        adj_nodes = []
+        for node_list in adj:
+            for node in node_list:
+                adj_nodes.append(node)
 
-    print('Order:', ordered)
+        # remove functional nodes (already recovered) from possible recovery nodes
+        adj_nodes = list(set(adj_nodes) - set(functional_nodes))
+        
+        # choose the node with the best util/demand ratio
+        ratios = {node: (util[node] / demand[node]) for node in adj_nodes}
+        ordered.append(max(ratios, key=ratios.get))
+
+        # add node we just recovered to functional nodes
+        functional_nodes.append(ordered[-1])
+
+    # use recoveryenv to check the total utility of the ordering
     env = RecoveryEnv(G, independent_nodes)
     total_utility = env.recover(ordered, resources)
 
@@ -159,9 +171,9 @@ def ratio_heuristic(G, independent_nodes, resources):
 
 
 def main():
-    tree = r_tree(nodes=5)
+    tree = r_tree(nodes=8)
     root = get_root(tree)
-    print(ratio_heuristic(tree, [root], 1))
+    ratio_heuristic(tree, [root], 1)
 
 if __name__ == '__main__':
     main()
