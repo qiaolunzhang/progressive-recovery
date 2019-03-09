@@ -1,7 +1,7 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
-from tree_recovery import r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
+from tree_recovery import r_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
 import numpy as np
 import random
 import itertools
@@ -14,7 +14,8 @@ save_path = "model/weights.ckpt"
 # random graph
 num_nodes = 22
 resources = 1
-G = r_tree(num_nodes)
+#G = r_tree(num_nodes)
+G = r_graph(num_nodes, 0.2)
 
 try:
     plot_graph(G, get_root(G), 'rl_graph.png')
@@ -108,7 +109,7 @@ for episode in range(EPISODES):
 
 
 print("Optimal:", DP_optimal(G, [get_root(G)], resources))
-print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
+#print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
 print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
 
 # TESTING

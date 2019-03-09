@@ -42,6 +42,34 @@ def r_tree(nodes, height=None):
 
     return G
 
+def r_graph(nodes, edge_prob):
+    '''
+    Generates a random graph, with random utility and demand for each node
+
+    :param nodes: Number of nodes in the tree
+    :param edge_prob: probability of adding an edge at a given node
+    :return: Random tree with len{V} = nodes
+    '''
+    G = nx.fast_gnp_random_graph(nodes, edge_prob)
+    
+    utils = {}
+    demand = {}
+    # for a given node, income = util - demand
+    income = {}
+
+    # random utils and demand for each node
+    for node in G.nodes:
+        utils.update({node: random.randint(1, 4)})
+        demand.update({node: random.randint(1, 2)})
+        income.update({node: utils[node] - demand[node]})
+
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+
 def update(G, demand, utils):
     nx.set_node_attributes(G, name='demand', values=demand)
     nx.set_node_attributes(G, name='util', values=utils)
