@@ -42,15 +42,47 @@ def r_tree(nodes, height=None):
 
     return G
 
-def r_graph(nodes, edge_prob):
+def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
     '''
-    Generates a random graph, with random utility and demand for each node
+    Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
+    with probability edge_prob.
 
-    :param nodes: Number of nodes in the tree
-    :param edge_prob: probability of adding an edge at a given node
-    :return: Random tree with len{V} = nodes
+    :param n: number of nodes
+    :param edge_prob: probability of adding an edge for a given pair of nodes
+    :param util_range: range to generate random utility from (inclusive)
+    :param demand_range: range to generate random demand from (inclusive)
+    :return: Random random graph with util, demand set for each node.
     '''
-    G = nx.fast_gnp_random_graph(nodes, edge_prob)
+    G = nx.fast_gnp_random_graph(n, edge_prob)
+
+    utils = {}
+    demand = {}
+    # for a given node, income = util - demand
+    income = {}
+
+    # random utils and demand for each node
+    for node in G.nodes:
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
+        income.update({node: utils[node] - demand[node]})
+
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+def r_2d_graph(n, m, util_range=[1,4], demand_range=[1,2]):
+    '''
+    Generates a random nxm 2d grid_graph, with random utility and demand for each node
+
+    :param nodes: Length of side of grid
+    :param util_range: range to generate random utility from (inclusive)
+    :param demand_range: range to generate random demand from (inclusive)
+    :return: Random grid_graph with nxm nodes.
+    '''
+    G = nx.grid_graph(dim=[n,m])
+    G = nx.convert_node_labels_to_integers(G)
     
     utils = {}
     demand = {}
@@ -59,8 +91,8 @@ def r_graph(nodes, edge_prob):
 
     # random utils and demand for each node
     for node in G.nodes:
-        utils.update({node: random.randint(1, 4)})
-        demand.update({node: random.randint(1, 2)})
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
         income.update({node: utils[node] - demand[node]})
 
     nx.set_node_attributes(G, name='util', values=utils)
@@ -264,7 +296,7 @@ def DP_optimal(G, independent_nodes, resources):
     for d_vj in demand.values():
         for d_vi in demand.values():
             if d_vj != d_vi and (d_vj + d_vi <= (2*C - 1)) and not already_warned:
-                print("WARNING ========================")
+                print("***********WARNING***********")
                 print("Calculation of optimal may not be correct")
                 print("Please make sure demand(vj) + demand(vi) <= 2C - 1 for all pairs (vj, vi) in G")
                 print(d_vj, "+", d_vi, "<=", 2*C - 1, "\n")
@@ -277,7 +309,7 @@ def DP_optimal(G, independent_nodes, resources):
     Z = {}
     B = {}
 
-    # note: turns out you can only hash immutable objects, so we use "frozenset" instead of "set"
+    # //**note**//: you can only hash immutable objects, so we use "frozenset" instead of "set"
     # save 0 utility at the emptyset hash
     Z[(frozenset([])).__hash__()] = 0
 

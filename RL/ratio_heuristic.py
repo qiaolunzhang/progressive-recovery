@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from tree_recovery import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes
+from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes
 
 # TODO:
 # 1. Test multiple independent nodes for optimality (we are only comparing against U-D heuristic
@@ -140,6 +140,7 @@ def ratio_heuristic(G, independent_nodes, resources):
     util = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
 
+    print('Connected components', nx.number_connected_components(G))
     # we always start our recovery order with independent nodes
     ordered = functional_nodes.copy()
     while len(functional_nodes) is not G.number_of_nodes():
@@ -157,6 +158,7 @@ def ratio_heuristic(G, independent_nodes, resources):
         
         # choose the node with the best util/demand ratio
         ratios = {node: (util[node] / demand[node]) for node in adj_nodes}
+
         ordered.append(max(ratios, key=ratios.get))
 
         # add node we just recovered to functional nodes

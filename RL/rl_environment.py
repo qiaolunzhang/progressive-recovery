@@ -1,6 +1,6 @@
 import networkx as nx
 import copy
-from tree_recovery import r_tree, get_root, DP_optimal, plot_graph
+from graph_helper import r_tree, get_root, DP_optimal, plot_graph
 import math
 import itertools
 import random
@@ -24,6 +24,7 @@ class environment:
         # state is an indicator matrix for each node in G. 0 -> node is offline
         # initially, every node is except for independent nodes
         self.state = [0 for x in range(self.number_of_nodes)]
+        print('indepedent nodes:', self.independent_nodes)
         for node in self.independent_nodes:
             self.state[node] = 1
 
