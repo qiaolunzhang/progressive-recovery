@@ -4,6 +4,7 @@ from graph_helper import r_tree, get_root, DP_optimal, plot_graph
 import math
 import itertools
 import random
+import time
 
 class environment:
     def __init__(self, G, independent_nodes, resources):
@@ -46,7 +47,7 @@ class environment:
         '''
         # get demand values of our graph
         demand = nx.get_node_attributes(self.G_constant, 'demand')
-
+        start = time.time()
         functional_nodes = []
         for node in self.G:
             for id_node in self.independent_nodes:
@@ -56,7 +57,7 @@ class environment:
         # possible nodes must be adjacent to either functional or independent nodes
         adjacent_to = functional_nodes + self.independent_nodes
         adjacent_to = list(set(adjacent_to))
-
+        
         #print('adjto', adjacent_to)
         possible_recovery = []
         for adj_node in adjacent_to:
@@ -78,15 +79,21 @@ class environment:
             random_action_list = list(itertools.permutations(possible_recovery, 2))
             random_action_choice = random.choice(random_action_list)
 
+        r = []
         # we may want to return the list of random actions for the non-epsilon case
         if return_indices:
             if len(possible_recovery) is 1:
-                return [self.actions_permutations.index(random_action_choice)]
+                r = [self.actions_permutations.index(random_action_choice)]
             else:
-                return [self.actions_permutations.index(x) for x in random_action_list]
+                r = [self.actions_permutations.index(x) for x in random_action_list]
 
         else:
-            return self.actions_permutations.index(random_action_choice)
+            r = self.actions_permutations.index(random_action_choice)
+
+        end = time.time()
+        # print('Time choosing random action:', end - start)
+
+        return r
 
 
     def convert_action(self, action):
@@ -128,6 +135,7 @@ class environment:
         :param debug: output data for test runs
         :return: state, reward, done
         '''
+        start = time.time()
         # turn index-based permutation into a vector representation
         if action_is_index:
             action = self.convert_action(action)
@@ -176,7 +184,9 @@ class environment:
             self.done = True
 
         self.round += 1
-
+        end = time.time()
+        # print('step time', end - start)
+        
         return self.state, reward, self.done
 
     def reset(self):

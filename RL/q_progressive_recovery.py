@@ -12,23 +12,24 @@ import time
 load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
-'''
 read = False
 util_20 = True
 
 # grid params
-grid_nodes = 5
+grid_nodes = 4
 
 # random graph
 num_nodes = grid_nodes ** 2
 resources = 1
 
 if read:
-    G = nx.read_gpickle('experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
+    G = nx.read_gpickle('experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
+    resources = 2
 else:
     if util_20:
         reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes) 
-        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[1,20], demand_range=[1,10])
+        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,10])
+        resources = 2
         nx.write_gpickle(G, 'experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
     else:
         #G = r_tree(num_nodes)
@@ -37,8 +38,9 @@ else:
         nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
 '''
 num_nodes = 20; p=0.2
-G = r_graph(num_nodes, p)
+G = r_graph(num_nodes, p, util_range=[1,20], demand_range=[1,10])
 resources = 1
+'''
 
 print('num_edges:', G.number_of_edges())
 
@@ -65,12 +67,12 @@ DQN = DeepQNetwork(
     batch_size=256,
     reward_decay=0.3,
     epsilon_min=0.2,
-    epsilon_greedy_decrement=0.5e-4,
+    epsilon_greedy_decrement=1e-5,
     # load_path=load_path,
     save_path=save_path
 )
 
-EPISODES = 5000
+EPISODES = 100
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -84,6 +86,7 @@ for episode in range(EPISODES):
     episode_reward = 0
     action_sequence = []
     start = time.time()
+    train_time = 0
 
     while not done:
         # 1. Choose an action based on observation
@@ -108,7 +111,10 @@ for episode in range(EPISODES):
 
         if total_steps_counter > 5000:
             # 4. Train
+            s = time.time()
             DQN.learn()
+            e = time.time()
+            train_time += (e - s)
 
         if done:
             rewards.append(episode_reward)
@@ -139,13 +145,37 @@ for episode in range(EPISODES):
         total_steps_counter += 1
 
     episodes_since_max += 1
-    if episodes_since_max > 1100:
-        break
-
-    if episode > (EPISODES - 100):
-        DQN.epsilon_min = 0
+    print('train time across episode', train_time)
 
 overall_end = time.time()
+
+# TEST Q-Learning
+DQN.epsilon = 0
+DQN.epsilon_min = 0
+observation, done = env.reset()
+final_reward = 0
+action_sequence = []
+while not done:
+    action = DQN.choose_action(observation)
+    action_sequence.append(action)
+    observation_, reward, done = env.step(action)
+
+    final_reward += reward
+    if done:
+        rewards.append(final_reward)
+        max_reward_so_far = np.amax(rewards)
+
+        # if maximum reward so far, save the action sequence
+        if final_reward == max_reward_so_far:
+            optimal_action_sequences.append((action_sequence, final_reward))
+            episodes_since_max = 0
+        break
+
+    # Save observation
+    observation = observation_
+print()
+print('final epsilon=0 reward', final_reward)
+print()
 
 # if we have a reasonable number of nodes, we can compute optimal
 if num_nodes < 24:
@@ -177,9 +207,9 @@ for action in opt:
     true_r += r
 
 print('reward during training:', reward)
+print('RL method time (s): ', overall_end - overall_start)
+
 plot_bar_x(rewards, 'episode', 'reward_graph.png')
 with open(reward_save, 'w') as f:
     for item in rewards:
         f.write('%s\n' % item)
-
-print('RL method time (s): ', overall_end - overall_start)
