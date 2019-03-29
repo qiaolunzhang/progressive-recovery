@@ -38,8 +38,8 @@ else:
         nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
 '''
 num_nodes = 20; p=0.2
-G = r_graph(num_nodes, p, util_range=[1,20], demand_range=[1,10])
-resources = 1
+G = r_graph(num_nodes, p, util_range=[2,20], demand_range=[2,10])
+resources = 2
 '''
 
 print('num_edges:', G.number_of_edges())
