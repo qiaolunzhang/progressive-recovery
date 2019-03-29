@@ -16,7 +16,7 @@ read = False
 util_20 = True
 
 # grid params
-grid_nodes = 4
+grid_nodes = 7
 
 # random graph
 num_nodes = grid_nodes ** 2
@@ -72,7 +72,7 @@ DQN = DeepQNetwork(
     save_path=save_path
 )
 
-EPISODES = 100
+EPISODES = 5000
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0

@@ -45,7 +45,7 @@ def r_tree(nodes, height=None):
 def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
     '''
     Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
-    with probability edge_prob.
+    with probability edge_prob. Guaranteed to be a connected graph.
 
     :param n: number of nodes
     :param edge_prob: probability of adding an edge for a given pair of nodes
@@ -55,6 +55,10 @@ def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
     '''
     G = nx.fast_gnp_random_graph(n, edge_prob)
 
+    # guarantee G is connected
+    while not nx.is_connected(G):
+        G = nx.fast_gnp_random_graph(n, edge_prob)
+ 
     utils = {}
     demand = {}
     # for a given node, income = util - demand
