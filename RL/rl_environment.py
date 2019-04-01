@@ -47,6 +47,8 @@ class environment:
         '''
         # get demand values of our graph
         demand = nx.get_node_attributes(self.G_constant, 'demand')
+        stepwise_demand = nx.get_node_attributes(self.G, 'demand')
+
         start = time.time()
         functional_nodes = []
         for node in self.G:
@@ -65,6 +67,12 @@ class environment:
                 if node in self.G_constant.neighbors(adj_node) and node != adj_node and demand[node] > 0:
                     possible_recovery.append(node)
 
+                    # if we can fully recover this node at a given time step, then we may start allocating resources to it's neighbors
+                    if node in stepwise_demand and stepwise_demand[node] < self.resources:
+                        for neighbor_of_node in self.G_constant.neighbors(node):
+                            possible_recovery.append(neighbor_of_node)
+
+
         possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
         #print(possible_recovery)
 
@@ -80,6 +88,7 @@ class environment:
             random_action_choice = random.choice(random_action_list)
 
         r = []
+
         # we may want to return the list of random actions for the non-epsilon case
         if return_indices:
             if len(possible_recovery) is 1:

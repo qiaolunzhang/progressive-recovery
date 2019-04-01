@@ -16,7 +16,7 @@ read = False
 util_20 = True
 
 # grid params
-grid_nodes = 7
+grid_nodes = 3
 
 # random graph
 num_nodes = grid_nodes ** 2
