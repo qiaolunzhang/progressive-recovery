@@ -94,7 +94,12 @@ for episode in range(EPISODES):
 
         # check for random action
         if action == -1:
-            action = env.random_action()
+            # now choose between truly random action and a ratio action
+            r = random.random()
+            if r < 0.5:
+                action = env.random_action()
+            else:
+                action = env.ratio_action()
 
         # save the taken action
         action_sequence.append(action)

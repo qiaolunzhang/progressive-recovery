@@ -12,6 +12,7 @@ import sys
 import math
 import multiprocessing
 
+
 def r_tree(nodes, height=None):
     '''
     Generates a random tree, with random utility and demand for each node
@@ -41,6 +42,7 @@ def r_tree(nodes, height=None):
     nx.set_node_attributes(G, name='income', values=income)
 
     return G
+
 
 def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
     '''

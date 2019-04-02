@@ -38,6 +38,63 @@ class environment:
         # True when state is vector of 1's
         self.done = False
 
+    def ratio_action(self):
+        """
+        Best action based on ratio heuristic.
+
+        :return:
+        """
+        # get demand values of our graph
+        demand = nx.get_node_attributes(self.G_constant, 'demand')
+        util = nx.get_node_attributes(self.G_constant, 'util')
+
+        stepwise_demand = nx.get_node_attributes(self.G, 'demand')
+
+        start = time.time()
+        functional_nodes = []
+        for node in self.G:
+            for id_node in self.independent_nodes:
+                if nx.has_path(self.G, id_node, node) and id_node != node:
+                    functional_nodes.append(node)
+
+        # possible nodes must be adjacent to either functional or independent nodes
+        adjacent_to = functional_nodes + self.independent_nodes
+        adjacent_to = list(set(adjacent_to))
+
+        # print('adjto', adjacent_to)
+        possible_recovery = []
+        for adj_node in adjacent_to:
+            for node in range(self.number_of_nodes):
+                if node in self.G_constant.neighbors(adj_node) and node != adj_node and demand[node] > 0:
+                    possible_recovery.append(node)
+
+                    # if we can fully recover this node at a given time step, then we may start allocating
+                    # resources to it's neighbors
+                    if node in stepwise_demand and stepwise_demand[node] < self.resources:
+                        for neighbor_of_node in self.G_constant.neighbors(node):
+                            possible_recovery.append(neighbor_of_node)
+
+        possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
+
+        print(possible_recovery)
+        # choose the node with the best util/demand ratio
+        try:
+            ratios = {node: (util[node] / stepwise_demand[node]) for node in possible_recovery}
+        except:
+            ratios = {node: (util[node] / demand[node]) for node in possible_recovery}
+
+        if len(ratios) == 1:
+            random_index_list = list(range(self.number_of_nodes))
+            random_index_list.pop(random_index_list.index(possible_recovery[0]))
+            a = (max(ratios, key=ratios.get), random.choice(random_index_list))
+        else:
+            best_node = max(ratios, key=ratios.get)
+            ratios[best_node] = 0
+            second_best_node = max(ratios, key=ratios.get)
+            a = (best_node, second_best_node)
+
+        return self.actions_permutations.index(a)
+
     def random_action(self, return_indices=False):
         '''
         @@ TODO: fix the random action for the first action taken in an episode
@@ -60,7 +117,7 @@ class environment:
         adjacent_to = functional_nodes + self.independent_nodes
         adjacent_to = list(set(adjacent_to))
         
-        #print('adjto', adjacent_to)
+        # print('adjto', adjacent_to)
         possible_recovery = []
         for adj_node in adjacent_to:
             for node in range(self.number_of_nodes):
@@ -74,7 +131,7 @@ class environment:
 
 
         possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
-        #print(possible_recovery)
+        # print(possible_recovery)
 
         # if we have only a single option to recover, naively choose it
         if len(possible_recovery) == 1:
@@ -89,7 +146,7 @@ class environment:
 
         r = []
 
-        # we may want to return the list of random actions for the non-epsilon case
+        # we may want to return the list of random actions for the 1-\epsilon case
         if return_indices:
             if len(possible_recovery) is 1:
                 r = [self.actions_permutations.index(random_action_choice)]
