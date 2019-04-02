@@ -76,7 +76,6 @@ class environment:
 
         possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
 
-        print(possible_recovery)
         # choose the node with the best util/demand ratio
         try:
             ratios = {node: (util[node] / stepwise_demand[node]) for node in possible_recovery}
