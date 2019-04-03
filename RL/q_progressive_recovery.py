@@ -12,7 +12,7 @@ import time
 load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
-read = False
+read = True
 util_20 = True
 
 # grid params
@@ -96,7 +96,8 @@ for episode in range(EPISODES):
         if action == -1:
             # now choose between truly random action and a ratio action
             r = random.random()
-            if r < 0.5:
+            # action = env.random_action()
+            if r < 0.8:
                 action = env.random_action()
             else:
                 action = env.ratio_action()
