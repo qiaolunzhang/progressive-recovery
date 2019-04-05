@@ -1,5 +1,6 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
+from graph_property import show_graph_props
 import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
 import numpy as np
@@ -12,35 +13,42 @@ import time
 load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
-read = True
-util_20 = True
+is_grid = False
 
-# grid params
-grid_nodes = 4
+if is_grid:
 
-# random graph
-num_nodes = grid_nodes ** 2
-resources = 1
+    read = True
+    util_20 = True
 
-if read:
-    G = nx.read_gpickle('experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
-    resources = 2
-else:
-    if util_20:
-        reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes) 
-        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,10])
+    # grid params
+    grid_nodes = 4
+
+    # random graph
+    num_nodes = grid_nodes ** 2
+    resources = 1
+
+    if read:
+        G = nx.read_gpickle('experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
         resources = 2
-        nx.write_gpickle(G, 'experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
     else:
-        #G = r_tree(num_nodes)
-        reward_save = 'experiments/{0}x{0}_a.txt'.format(grid_nodes)
-        G = r_2d_graph(grid_nodes, grid_nodes)
-        nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
-'''
-num_nodes = 20; p=0.2
-G = r_graph(num_nodes, p, util_range=[2,20], demand_range=[2,10])
-resources = 2
-'''
+        if util_20:
+            reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes)
+            G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,10])
+            resources = 2
+            nx.write_gpickle(G, 'experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
+        else:
+            #G = r_tree(num_nodes)
+            reward_save = 'experiments/{0}x{0}_a.txt'.format(grid_nodes)
+            G = r_2d_graph(grid_nodes, grid_nodes)
+            nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
+else:
+    num_nodes = 10; p=0.2
+    G = r_graph(num_nodes, p, util_range=[1,4], demand_range=[1,2])
+    resources = 1
+
+    show_graph_props(G)
+    
+
 
 print('num_edges:', G.number_of_edges())
 
