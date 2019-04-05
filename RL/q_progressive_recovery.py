@@ -12,7 +12,7 @@ import time
 load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
-read = True
+read = False
 util_20 = True
 
 # grid params
@@ -67,12 +67,12 @@ DQN = DeepQNetwork(
     batch_size=256,
     reward_decay=0.3,
     epsilon_min=0.1,
-    epsilon_greedy_decrement=1e-5,
+    epsilon_greedy_decrement=1e-4,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 4500
+EPISODES = 800
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -90,17 +90,12 @@ for episode in range(EPISODES):
 
     while not done:
         # 1. Choose an action based on observation
-        action = DQN.choose_action(observation)
+        action, rnd_reward = DQN.choose_action(observation)
 
         # check for random action
         if action == -1:
-            # now choose between truly random action and a ratio action
-            r = random.random()
-            # action = env.random_action()
-            if r < 0.8:
-                action = env.random_action()
-            else:
-                action = env.ratio_action()
+            # now choose random action
+            action = env.random_action()
 
         # save the taken action
         action_sequence.append(action)
@@ -110,9 +105,11 @@ for episode in range(EPISODES):
         observation_, reward, done = env.step(action)
         #print(observation_, reward, done)
 
+        # we store our random_network distillation plus our real reward
         # 3. Store transition
-        DQN.store_transition(observation, action, reward, observation_)
+        DQN.store_transition(observation, action, reward + rnd_reward, observation_)
 
+        # but we only keep track of the real reward, since that's what matters when we're learning
         episode_reward += reward
 
         if total_steps_counter > 5000:
@@ -162,7 +159,7 @@ observation, done = env.reset()
 final_reward = 0
 action_sequence = []
 while not done:
-    action = DQN.choose_action(observation)
+    action, _ = DQN.choose_action(observation)
     action_sequence.append(action)
     observation_, reward, done = env.step(action)
 
@@ -215,7 +212,11 @@ for action in opt:
 print('reward during training:', reward)
 print('RL method time (s): ', overall_end - overall_start)
 
-plot_bar_x(rewards, 'episode', 'reward_graph.png')
+try:
+    plot_bar_x(rewards, 'episode', 'reward_graph.png')
+except:
+    print('No display')
+
 with open(reward_save, 'w') as f:
     for item in rewards:
         f.write('%s\n' % item)
