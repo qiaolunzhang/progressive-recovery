@@ -1,6 +1,6 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
-from graph_property import show_graph_props
+from graph_property import show_graph_props, retun_props
 import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
 import numpy as np
@@ -8,6 +8,8 @@ import random
 import itertools
 from ratio_heuristic import ratio_heuristic
 import time
+
+import sys
 
 # Load checkpoint
 load_path = "weights/weights.ckpt"
@@ -42,7 +44,10 @@ if is_grid:
             G = r_2d_graph(grid_nodes, grid_nodes)
             nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
 else:
-    num_nodes = 10; p=0.2
+    
+    args = sys.argv
+    
+    num_nodes = int(args[1]); p=float(args[2])
     G = r_graph(num_nodes, p, util_range=[1,4], demand_range=[1,2])
     resources = 1
 
@@ -194,16 +199,18 @@ print()
 # if we have a reasonable number of nodes, we can compute optimal
 if num_nodes < 24:
     dp_time = time.time()
-    print("Optimal:", DP_optimal(G, [get_root(G)], resources))
+    opt_rslt = DP_optimal(G, [get_root(G)], resources)
     dp_time_end = time.time()
+    print("Optimal:", opt_rslt)
     print('DP time:', dp_time_end - dp_time)
 
 print()
 
 #print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
 ratio_time_start = time.time()
-print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
+rh_rslt = ratio_heuristic(G, [get_root(G)], resources)
 ratio_time_end = time.time()
+print("Ratio Heuristic", rh_rslt)
 print('Ratio time:', ratio_time_end - ratio_time_start)
 
 # TESTING
@@ -223,7 +230,17 @@ for action in opt:
 print('reward during training:', reward)
 print('RL method time (s): ', overall_end - overall_start)
 
+'''
 plot_bar_x(rewards, 'episode', 'reward_graph.png')
 with open(reward_save, 'w') as f:
     for item in rewards:
         f.write('%s\n' % item)
+'''
+
+with open('./record.txt', mode='a') as f:
+    f.write('%s, ' % num_nodes)
+    for prop in retun_props(G):
+        f.write('%s, ' % prop)
+    f.write('%s, ' % rh_rslt)
+    f.write('%s, ' % opt_rslt[0])
+    f.write('%s\n' % final_reward)
