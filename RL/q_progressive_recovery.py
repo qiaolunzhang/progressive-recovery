@@ -110,7 +110,7 @@ for episode in range(EPISODES):
             # now choose between truly random action and a ratio action
             r = random.random()
             # action = env.random_action()
-            if r < 0.8:
+            if r < 1.0:
                 action = env.random_action()
             else:
                 action = env.ratio_action()
