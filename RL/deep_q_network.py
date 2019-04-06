@@ -126,16 +126,11 @@ class DeepQNetwork:
                 action = np.where(actions_q_value==max(valid_q_values))[0]
             #print('action', action)
             #action = np.argmax(actions_q_value)
-
-            # now we return the || f'(x) - f(x) || for network distillation
-            target_q_value = self.sess.run(self.q_next_outputs, feed_dict={self.X_: observation})
-            rnd_reward = np.linalg.norm(target_q_value - actions_q_value)
         else:
             # Random action, handled by the environment when given -1 input
-            rnd_reward = 0
             action = -1
 
-        return action, rnd_reward
+        return action
 
     def replace_target_net_parameters(self):
         print("target parameters replaced")
