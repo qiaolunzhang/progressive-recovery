@@ -12,7 +12,7 @@ import time
 load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
-read = True
+read = False
 util_20 = True
 
 # grid params
@@ -25,6 +25,7 @@ resources = 1
 if read:
     G = nx.read_gpickle('experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
     resources = 2
+    reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes)
 else:
     if util_20:
         reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes) 
@@ -67,18 +68,19 @@ DQN = DeepQNetwork(
     batch_size=256,
     reward_decay=0.3,
     epsilon_min=0.1,
-    epsilon_greedy_decrement=1e-5,
+    epsilon_greedy_decrement=1e-4,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 4500
+EPISODES = 2000
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
 
 optimal_action_sequences = []
 overall_start = time.time()
+#DQN.epsilon = 0.5
 
 for episode in range(EPISODES):
 
@@ -95,12 +97,14 @@ for episode in range(EPISODES):
         # check for random action
         if action == -1:
             # now choose between truly random action and a ratio action
-            r = random.random()
-            # action = env.random_action()
-            if r < 0.8:
-                action = env.random_action()
-            else:
-                action = env.ratio_action()
+            # r = random.random()
+            action = env.random_action()
+            # if r < 0.2 and episode < 0:
+            #     action = env.random_action()
+            # elif episode < 0: 
+            #     action = env.ratio_action()
+            # else: 
+            #     action = env.random_action()
 
         # save the taken action
         action_sequence.append(action)
@@ -115,7 +119,7 @@ for episode in range(EPISODES):
 
         episode_reward += reward
 
-        if total_steps_counter > 5000:
+        if total_steps_counter > 20000:
             # 4. Train
             s = time.time()
             DQN.learn()
@@ -149,6 +153,10 @@ for episode in range(EPISODES):
 
         # Increase total steps
         total_steps_counter += 1
+        
+        # if episode == 700:
+        #     DQN.epsilon_min = .1
+        #     DQN.epsilon = 0.5
 
     episodes_since_max += 1
     print('train time across episode', train_time)
@@ -164,7 +172,7 @@ action_sequence = []
 while not done:
     action = DQN.choose_action(observation)
     action_sequence.append(action)
-    observation_, reward, done = env.step(action)
+    observation_, reward, done = env.step(action, neg=False)
 
     final_reward += reward
     if done:
@@ -179,24 +187,10 @@ while not done:
 
     # Save observation
     observation = observation_
+
 print()
 print('final epsilon=0 reward', final_reward)
 print()
-
-# if we have a reasonable number of nodes, we can compute optimal
-if num_nodes < 24:
-    dp_time = time.time()
-    print("Optimal:", DP_optimal(G, [get_root(G)], resources))
-    dp_time_end = time.time()
-    print('DP time:', dp_time_end - dp_time)
-
-print()
-
-#print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
-ratio_time_start = time.time()
-print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
-ratio_time_end = time.time()
-print('Ratio time:', ratio_time_end - ratio_time_start)
 
 # TESTING
 # convert our best optimal action sequence to vector representation, test it for correctness
@@ -212,6 +206,21 @@ for action in opt:
     _, r, d = env.step(action, debug=True)
     true_r += r
 
+
+# if we have a reasonable number of nodes, we can compute optimal
+if num_nodes < 24:
+    dp_time = time.time()
+    print("Optimal:", DP_optimal(G, [get_root(G)], resources))
+    dp_time_end = time.time()
+    print('DP time:', dp_time_end - dp_time)
+
+print()
+
+#print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
+ratio_time_start = time.time()
+print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
+ratio_time_end = time.time()
+print('Ratio time:', ratio_time_end - ratio_time_start)
 print('reward during training:', reward)
 print('RL method time (s): ', overall_end - overall_start)
 
