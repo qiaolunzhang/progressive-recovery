@@ -13,8 +13,8 @@ load_path = "weights/weights.ckpt"
 save_path = "weights/weights.ckpt"
 
 read = False
-util_20 = True
-
+util_20 = False
+'''
 # grid params
 grid_nodes = 4
 
@@ -29,7 +29,7 @@ if read:
 else:
     if util_20:
         reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes) 
-        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,10])
+        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,4])
         resources = 2
         nx.write_gpickle(G, 'experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
     else:
@@ -37,11 +37,14 @@ else:
         reward_save = 'experiments/{0}x{0}_a.txt'.format(grid_nodes)
         G = r_2d_graph(grid_nodes, grid_nodes)
         nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
-'''
+
 num_nodes = 20; p=0.2
 G = r_graph(num_nodes, p, util_range=[2,20], demand_range=[2,10])
 resources = 2
 '''
+num_nodes = 50
+G = r_tree(num_nodes)
+resources = 1
 
 print('num_edges:', G.number_of_edges())
 
@@ -73,7 +76,7 @@ DQN = DeepQNetwork(
     # save_path=save_path
 )
 
-EPISODES = 2000
+EPISODES = 1500
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -119,7 +122,7 @@ for episode in range(EPISODES):
 
         episode_reward += reward
 
-        if total_steps_counter > 20000:
+        if total_steps_counter > 2000:
             # 4. Train
             s = time.time()
             DQN.learn()
@@ -216,7 +219,7 @@ if num_nodes < 24:
 
 print()
 
-#print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
+print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
 ratio_time_start = time.time()
 print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
 ratio_time_end = time.time()

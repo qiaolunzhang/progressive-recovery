@@ -65,8 +65,8 @@ class DeepQNetwork:
         self.memory_s_ = np.zeros((n_x,self.memory_size))
 
         # Config for networks
-        n_l1 =100
-        n_l2 = 100
+        n_l1 =2000
+        n_l2 = 2000
         W_init = tf.contrib.layers.xavier_initializer(seed=1)
         b_init = tf.contrib.layers.xavier_initializer(seed=1)
         self.build_eval_network(n_l1, n_l2, W_init, b_init)
@@ -180,7 +180,8 @@ class DeepQNetwork:
 
         # Generate Q target values with Bellman equation
         q_target_outputs[ actions_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
-
+        # print('Q targets', q_target_outputs)
+        
         # Train eval network
         _, self.cost = self.sess.run([self.train_op, self.loss], feed_dict={ self.X: batch_memory_s, self.Y: q_target_outputs } )
 
