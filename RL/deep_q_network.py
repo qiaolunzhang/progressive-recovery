@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import random
+import math
 
 def random_action(n, resources):
     '''
@@ -71,6 +72,7 @@ class DeepQNetwork:
         b_init = tf.contrib.layers.xavier_initializer(seed=1)
         self.build_eval_network(n_l1, n_l2, W_init, b_init)
         self.build_target_network(n_l1, n_l2, W_init, b_init)
+        self.build_predictor_network(n_l1, n_l2, W_init, b_init)
 
         self.sess = tf.Session()
 
@@ -102,7 +104,7 @@ class DeepQNetwork:
 
         self.memory_counter += 1
 
-    def choose_action(self, observation):
+    def choose_action(self, observation, rnd_reward=False):
         # Reshape to (num_features, 1)
         observation = np.array(observation)
         observation = observation[ :, np.newaxis ]
@@ -124,12 +126,25 @@ class DeepQNetwork:
             except:
                 print(np.where(actions_q_value==max(valid_q_values)))
                 action = np.where(actions_q_value==max(valid_q_values))[0]
+
             #print('action', action)
             #action = np.argmax(actions_q_value)
 
-            # now we return the || f'(x) - f(x) || for network distillation
-            target_q_value = self.sess.run(self.q_next_outputs, feed_dict={self.X_: observation})
-            rnd_reward = np.linalg.norm(target_q_value - actions_q_value)
+            # now we return the || f'(x) - f(x) ||^2 for network distillation
+            predictor_q_value, _, rnd_reward = self.sess.run([self.q_pred_outputs, self.pred_train_op, self.pred_loss], feed_dict={self.X_pred: observation, self.Y_pred: actions_q_value})
+            rnd_reward = 12.5 * np.arcsinh(rnd_reward)
+            rnd_reward = 0
+            # print('pred q value', predictor_q_value)
+            # print('actions q value', actions_q_value)
+            # rnd_reward = 0
+            # sample_num = 1
+            # indices = random.sample(range(len(predictor_q_value)), sample_num)
+            # for x in indices:
+            #    rnd_reward += (predictor_q_value[x] - actions_q_value[x]) ** 2
+
+            print('rnd_reward:', rnd_reward)
+            if math.isnan(rnd_reward):
+                rnd_reward = 0
         else:
             # Random action, handled by the environment when given -1 input
             rnd_reward = 0
@@ -187,7 +202,10 @@ class DeepQNetwork:
         q_target_outputs[ actions_index, batch_index ] = batch_memory_r + self.reward_decay * np.max(q_next_outputs, axis=0)
 
         # Train eval network
-        _, self.cost = self.sess.run([self.train_op, self.loss], feed_dict={ self.X: batch_memory_s, self.Y: q_target_outputs } )
+        _, self.cost = self.sess.run([self.train_op, self.loss], feed_dict={self.X: batch_memory_s, self.Y: q_target_outputs})
+
+        # Train predictor network
+        _ = self.sess.run([self.pred_train_op], feed_dict={self.X_pred: batch_memory_s, self.Y_pred: q_eval_outputs})
 
         # Save cost
         self.cost_history.append(self.cost)
@@ -262,6 +280,44 @@ class DeepQNetwork:
             with tf.variable_scope('layer_3'):
                 Z3 = tf.matmul(W3, A2) + b3
                 self.q_next_outputs = Z3
+
+    def build_predictor_network(self, n_l1, n_l2, W_init, b_init):
+        ###########
+        # PREDICTOR NET
+        ###########
+        self.X_pred = tf.placeholder(tf.float32, [self.n_x, None], name='pred_s')
+        self.Y_pred = tf.placeholder(tf.float32, [self.n_y, None ], name='pred_q_target')
+
+        with tf.variable_scope('pred_net'):
+            # Store variables in collection
+            c_names = ['pred_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
+
+            with tf.variable_scope('parameters'):
+                W1 = tf.get_variable('W1', [n_l1, self.n_x], initializer=W_init, collections=c_names)
+                b1 = tf.get_variable('b1', [n_l1, 1], initializer=b_init, collections=c_names)
+                W2 = tf.get_variable('W2', [n_l2, n_l1], initializer=W_init, collections=c_names)
+                b2 = tf.get_variable('b2', [n_l2, 1], initializer=b_init, collections=c_names)
+                W3 = tf.get_variable('W3', [self.n_y, n_l2], initializer=W_init, collections=c_names)
+                b3 = tf.get_variable('b3', [self.n_y, 1], initializer=b_init, collections=c_names)
+
+            # First layer
+            with tf.variable_scope('layer_1'):
+                Z1 = tf.matmul(W1, self.X_pred) + b1
+                A1 = tf.nn.relu( Z1 )
+            # Second layer
+            with tf.variable_scope('layer_2'):
+                Z2 = tf.matmul(W2, A1) + b2
+                A2 = tf.nn.relu( Z2 )
+            # Output layer
+            with tf.variable_scope('layer_3'):
+                Z3 = tf.matmul(W3, A2) + b3
+                self.q_pred_outputs = Z3
+
+        with tf.variable_scope('loss'):
+            # self.pred_loss = tf.reduce_mean(tf.squared_difference(self.Y_pred, self.q_pred_outputs))
+            self.pred_loss = tf.losses.mean_squared_error(self.Y_pred, self.q_pred_outputs)
+        with tf.variable_scope('train'):
+            self.pred_train_op = tf.train.AdamOptimizer(self.lr).minimize(self.pred_loss)
 
     def plot_cost(self):
         import matplotlib

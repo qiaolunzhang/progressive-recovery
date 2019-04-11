@@ -16,7 +16,7 @@ read = False
 util_20 = True
 
 # grid params
-grid_nodes = 4
+grid_nodes = 5
 
 # random graph
 num_nodes = grid_nodes ** 2
@@ -28,7 +28,7 @@ if read:
 else:
     if util_20:
         reward_save = 'experiments/{0}x{0}_b.txt'.format(grid_nodes) 
-        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,10])
+        G = r_2d_graph(grid_nodes, grid_nodes, util_range=[2,20], demand_range=[2,4])
         resources = 2
         nx.write_gpickle(G, 'experiments/{0}x{0}_b.gpickle'.format(grid_nodes))
     else:
@@ -61,18 +61,18 @@ DQN = DeepQNetwork(
     n_x=num_nodes,
     resources=resources,
     env=env,
-    learning_rate=0.15,
+    learning_rate=0.1,
     replace_target_iter=100,
     memory_size=20000,
     batch_size=256,
-    reward_decay=0.3,
+    reward_decay=0.1,
     epsilon_min=0.1,
-    epsilon_greedy_decrement=1e-4,
+    epsilon_greedy_decrement=1e-3,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 800
+EPISODES = 500
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -90,7 +90,7 @@ for episode in range(EPISODES):
 
     while not done:
         # 1. Choose an action based on observation
-        action, rnd_reward = DQN.choose_action(observation)
+        action, rnd_reward = DQN.choose_action(observation, rnd_reward=True)
 
         # check for random action
         if action == -1:
@@ -101,8 +101,10 @@ for episode in range(EPISODES):
         action_sequence.append(action)
 
         #print('Chosen action', action)
+
         # 2. Take the chosen action in the environment
-        observation_, reward, done = env.step(action)
+        observation_, reward, done = env.step(action, neg=False)
+        print('normal reward:', reward)
         #print(observation_, reward, done)
 
         # we store our random_network distillation plus our real reward
@@ -161,7 +163,7 @@ action_sequence = []
 while not done:
     action, _ = DQN.choose_action(observation)
     action_sequence.append(action)
-    observation_, reward, done = env.step(action)
+    observation_, reward, done = env.step(action, neg=False)
 
     final_reward += reward
     if done:

@@ -191,13 +191,14 @@ class environment:
 
         return true_action
 
-    def step(self, action, action_is_index=True, debug=False):
+    def step(self, action, action_is_index=True, debug=False, neg=True):
         '''
         Applies a partition of resources to the graph G
 
         :param action: index to a specific |V(G)| len vector, where sum(action) == resources at a time step.
         :param action_is_index: If we wish to test the best config, we only have real action vectors so no need to convert. Usually only have indices
         :param debug: output data for test runs
+        :param neg: negative scaled reward or not
         :return: state, reward, done
         '''
         start = time.time()
@@ -230,7 +231,10 @@ class environment:
             print('count_utility', count_utility)
         
         # utility at this time step is reward
-        reward = sum([utils[x] if x in count_utility else 0 for x in range(len(action))])
+        if neg:
+            reward = sum([utils[x] if x in count_utility else -1 * utils[x] for x in range(len(action))])
+        else:
+            reward = sum([utils[x] if x in count_utility else 0 for x in range(len(action))])
 
         # convert demand back to dict
         demand = dict((i, demand[i]) for i in range(len(demand)))
@@ -242,7 +246,8 @@ class environment:
         if self.state == [1 for x in self.state]:
             self.done = True
 
-        # check if we have reached round limit, which is ceil(sum(demands of non-independent nodes) / resources per turn)
+        # check if we have reached round limit, which is:
+        # ceil(sum(demands of non-independent nodes) / resources per turn)
         independent_node_demand = [self.start_demand[x] for x in self.independent_nodes]
 
         if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand))/ self.resources)):
