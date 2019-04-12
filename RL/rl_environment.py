@@ -213,6 +213,7 @@ class environment:
 
         # apply resources to demand vector
         demand = [max(demand[x] - action[x], 0) for x in range(len(action))]
+        demand_state = demand.copy()
 
         # update state
         self.state = [1 if demand[x] == 0 or self.state[x] == 1 else 0 for x in range(len(action))]
@@ -256,7 +257,8 @@ class environment:
         end = time.time()
         # print('step time', end - start)
         
-        return self.state, reward, self.done
+        # return self.state, reward, self.done
+        return demand_state, reward, self.done
 
     def reset(self):
         '''

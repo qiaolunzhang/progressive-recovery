@@ -76,7 +76,7 @@ DQN = DeepQNetwork(
     # save_path=save_path
 )
 
-EPISODES = 1500
+EPISODES = 200
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -116,7 +116,7 @@ for episode in range(EPISODES):
         # 2. Take the chosen action in the environment
         observation_, reward, done = env.step(action)
         #print(observation_, reward, done)
-
+        reward *= 0.1
         # 3. Store transition
         DQN.store_transition(observation, action, reward, observation_)
 
