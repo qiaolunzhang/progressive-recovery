@@ -109,8 +109,9 @@ class n_environment:
 
         # update demand values in our current graph
         nx.set_node_attributes(self.G_constant, name='demand', values=demand)
+        new_state = [demand[x] for x in range(self.number_of_nodes)]
 
-        return demand, reward, self.done
+        return new_state, reward, self.done
 
     def reset(self):
         '''
