@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes
+from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes, r_graph, DP_optimal
 
 # TODO:
 # 1. Test multiple independent nodes for optimality (we are only comparing against U-D heuristic
@@ -173,9 +173,11 @@ def ratio_heuristic(G, independent_nodes, resources):
 
 
 def main():
-    tree = r_tree(nodes=8)
-    root = get_root(tree)
-    ratio_heuristic(tree, [root], 1)
+    for x in range(20):
+        graph = r_graph(n=12, edge_prob=0.2)
+        root = get_root(graph)
+        print(ratio_heuristic(graph, [root], 1))
+        print(DP_optimal(graph, [root], 1))
 
 if __name__ == '__main__':
     main()

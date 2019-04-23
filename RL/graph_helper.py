@@ -12,6 +12,35 @@ import sys
 import math
 import multiprocessing
 
+def read_gml(DIR, util_range=[1,4], demand_range=[1,2]):
+    """
+    Reads a networkx graph from a GML (Graph Markup Language) files, and assigns each node util + demand
+
+    :param DIR: Directory to read the file from
+    :param util_range: range of util for each node
+    :param demand_range: range of demand for each node
+    :return: G, where each node has util/demand values
+    """
+    G = nx.read_gml(DIR)
+    G = nx.convert_node_labels_to_integers(G)
+    print('reading {0}, num_nodes = '.format(DIR), len(G))
+
+    utils = {}
+    demand = {}
+    # for a given node, income = util - demand
+    income = {}
+
+    # random utils and demand for each node
+    for node in G.nodes:
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
+        income.update({node: utils[node] - demand[node]})
+
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
 
 def r_tree(nodes, height=None):
     '''

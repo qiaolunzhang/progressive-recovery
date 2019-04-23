@@ -1,11 +1,12 @@
 from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
-from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x
+from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, plot_bar_x, read_gml
 import numpy as np
 import random
 import itertools
 from ratio_heuristic import ratio_heuristic
+from random_heuristic import random_heuristic
 import time
 
 # Load checkpoint
@@ -42,8 +43,8 @@ num_nodes = 20; p=0.2
 G = r_graph(num_nodes, p, util_range=[2,20], demand_range=[2,10])
 resources = 2
 '''
-num_nodes = 50
-G = r_tree(num_nodes)
+G = read_gml('../gml/DIGEX.gml')
+num_nodes = len(G)
 resources = 1
 
 print('num_edges:', G.number_of_edges())
@@ -65,7 +66,7 @@ DQN = DeepQNetwork(
     n_x=num_nodes,
     resources=resources,
     env=env,
-    learning_rate=0.15,
+    learning_rate=0.5,
     replace_target_iter=100,
     memory_size=20000,
     batch_size=256,
@@ -76,7 +77,7 @@ DQN = DeepQNetwork(
     # save_path=save_path
 )
 
-EPISODES = 200
+EPISODES = 0
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -218,14 +219,18 @@ if num_nodes < 24:
     print('DP time:', dp_time_end - dp_time)
 
 print()
-
+print('random herustic', random_heuristic(G, [get_root(G)], resources))
+print()
 print('Tree Heuristic:', simulate_tree_recovery(G, resources, get_root(G), clean=False))
+print()
 ratio_time_start = time.time()
 print("Ratio Heuristic", ratio_heuristic(G, [get_root(G)], resources))
 ratio_time_end = time.time()
 print('Ratio time:', ratio_time_end - ratio_time_start)
+print()
 print('reward during training:', reward)
 print('RL method time (s): ', overall_end - overall_start)
+print()
 
 plot_bar_x(rewards, 'episode', 'reward_graph.png')
 with open(reward_save, 'w') as f:
