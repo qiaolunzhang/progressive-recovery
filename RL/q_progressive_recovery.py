@@ -18,6 +18,8 @@ save_path = "weights/weights.ckpt"
 
 is_grid = False
 
+args = sys.argv
+
 if is_grid:
 
     read = True
@@ -46,7 +48,6 @@ if is_grid:
             nx.write_gpickle(G, 'experiments/{0}x{0}_a.gpickle'.format(grid_nodes))
 else:
     
-    args = sys.argv
     num_nodes = int(args[1])
     
     #num_nodes = 5
@@ -82,14 +83,14 @@ DQN = DeepQNetwork(
     replace_target_iter=10,
     memory_size=5000,
     batch_size=256,
-    reward_decay=0.3,
-    epsilon_min=0.1,
+    reward_decay=float(args[2]),
+    epsilon_min=float(args[3]),
     epsilon_greedy_decrement=1e-5,
     # load_path=load_path,
     # save_path=save_path
 )
 
-EPISODES = 2000
+EPISODES = 1500
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -203,7 +204,7 @@ print()
 
 # if we have a reasonable number of nodes, we can compute optimal
 
-opt_limit = 10
+opt_limit = 16
 
 if num_nodes < opt_limit:
     dp_time = time.time()
