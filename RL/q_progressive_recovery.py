@@ -7,6 +7,7 @@ import numpy as np
 import random
 import itertools
 from ratio_heuristic import ratio_heuristic
+from random_heuristic import random_heuristic
 import time
 
 import sys
@@ -46,8 +47,11 @@ if is_grid:
 else:
     
     args = sys.argv
+    num_nodes = int(args[1])
     
-    num_nodes = int(args[1]); p=float(args[2])
+    #num_nodes = 5
+    p = 0.2
+    
     G = r_graph(num_nodes, p, util_range=[1,4], demand_range=[1,2])
     resources = 1
 
@@ -74,9 +78,9 @@ DQN = DeepQNetwork(
     n_x=num_nodes,
     resources=resources,
     env=env,
-    learning_rate=0.15,
-    replace_target_iter=100,
-    memory_size=20000,
+    learning_rate=0.01,
+    replace_target_iter=10,
+    memory_size=5000,
     batch_size=256,
     reward_decay=0.3,
     epsilon_min=0.1,
@@ -85,7 +89,7 @@ DQN = DeepQNetwork(
     # save_path=save_path
 )
 
-EPISODES = 4500
+EPISODES = 2000
 rewards = []
 total_steps_counter = 0
 episodes_since_max = 0
@@ -174,6 +178,7 @@ DQN.epsilon_min = 0
 observation, done = env.reset()
 final_reward = 0
 action_sequence = []
+
 while not done:
     action = DQN.choose_action(observation)
     action_sequence.append(action)
@@ -197,7 +202,10 @@ print('final epsilon=0 reward', final_reward)
 print()
 
 # if we have a reasonable number of nodes, we can compute optimal
-if num_nodes < 24:
+
+opt_limit = 10
+
+if num_nodes < opt_limit:
     dp_time = time.time()
     opt_rslt = DP_optimal(G, [get_root(G)], resources)
     dp_time_end = time.time()
@@ -212,6 +220,12 @@ rh_rslt = ratio_heuristic(G, [get_root(G)], resources)
 ratio_time_end = time.time()
 print("Ratio Heuristic", rh_rslt)
 print('Ratio time:', ratio_time_end - ratio_time_start)
+
+
+#random-heuristic
+rndheu_rslt = random_heuristic(G, [get_root(G)], resources)
+print("Random Heuristic ", rndheu_rslt)
+
 
 # TESTING
 # convert our best optimal action sequence to vector representation, test it for correctness
@@ -239,8 +253,12 @@ with open(reward_save, 'w') as f:
 
 with open('./record.txt', mode='a') as f:
     f.write('%s, ' % num_nodes)
-    for prop in retun_props(G):
-        f.write('%s, ' % prop)
-    f.write('%s, ' % rh_rslt)
-    f.write('%s, ' % opt_rslt[0])
-    f.write('%s\n' % final_reward)
+    #for prop in retun_props(G):
+        #f.write('%s, ' % prop)
+
+    f.write('%s, ' % rh_rslt) #ratio
+    f.write('%s, ' % rndheu_rslt) #random heu
+    if num_nodes < opt_limit:
+        f.write('%s, ' % opt_rslt[0]) #opt
+
+    f.write('%s\n' % final_reward) #Q

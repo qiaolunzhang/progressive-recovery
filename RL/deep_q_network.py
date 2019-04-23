@@ -37,6 +37,8 @@ class DeepQNetwork:
         save_path=None
     ):
 
+        self.epsilon = 1
+        
         # n_y is action space
         self.n_y = n_y
         # n_x is state space
@@ -55,8 +57,6 @@ class DeepQNetwork:
 
         self.memory_counter = 0
         self.learn_step_counter = 0
-
-        self.epsilon = 1
 
         # Initialize memory
         self.memory_s = np.zeros((n_x,self.memory_size))
