@@ -5,6 +5,7 @@ import copy
 from graph_helper import r_tree, get_root, DP_optimal, plot_graph
 import random
 
+
 class n_environment:
     def __init__(self, G, independent_nodes, resources):
         '''
@@ -74,7 +75,8 @@ class n_environment:
                 if nx.has_path(self.G, id_node, node) and id_node != node:
                     count_utility.append(node)
 
-        util_before = (rounds_to_recover - 1) * sum([util[x] if x in count_utility else 0 for x in range(self.number_of_nodes)])
+        util_before = (rounds_to_recover - 1) * sum(
+            [util[x] if x in count_utility else 0 for x in range(self.number_of_nodes)])
 
         # update state, calculate the "after" util
         # print(demand)
@@ -102,7 +104,7 @@ class n_environment:
         # ceil(sum(demands of non-independent nodes) / resources per turn)
         independent_node_demand = [self.start_demand[x] for x in self.independent_nodes]
 
-        if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand))/ self.resources)):
+        if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand)) / self.resources)):
             self.done = True
 
         self.round += rounds_to_recover
@@ -139,15 +141,16 @@ def main():
     num_nodes = 8
     G = r_tree(num_nodes)
     plot_graph(G, 0, 'environment_debug_graph.png')
-    env = n_environment(G,[0], 1)
+    env = n_environment(G, [0], 1)
     for x in range(1, num_nodes):
         print(env.step(x))
 
     env.reset()
     print('Reset env =========================')
     while not env.done:
-        print(env.step(random.randint(0, num_nodes-1)))
+        print(env.step(random.randint(0, num_nodes - 1)))
         print()
+
 
 if __name__ == "__main__":
     main()

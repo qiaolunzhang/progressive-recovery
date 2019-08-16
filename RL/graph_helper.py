@@ -1,18 +1,12 @@
 import networkx as nx
-import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
 import random
-import operator
 import os, shutil
 import itertools
-import time
-import sys
-#from progress.bar import Bar
 import math
-import multiprocessing
 
-def read_gml(DIR, util_range=[1,4], demand_range=[1,2]):
+
+def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
     """
     Reads a networkx graph from a GML (Graph Markup Language) files, and assigns each node util + demand
 
@@ -42,11 +36,14 @@ def read_gml(DIR, util_range=[1,4], demand_range=[1,2]):
 
     return G
 
-def r_tree(nodes, height=None):
+
+def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
     '''
     Generates a random tree, with random utility and demand for each node
 
     :param nodes: Number of nodes in the tree
+    :param util_range: range of utils
+    :param demand_range: (above)
     :param height: (optional) produces tree with given height.
     :return: Random tree with len{V} = nodes
     '''
@@ -62,8 +59,8 @@ def r_tree(nodes, height=None):
 
     # random utils and demand for each node
     for node in G.nodes:
-        utils.update({node: random.randint(1, 4)})
-        demand.update({node: random.randint(1, 2)})
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
         income.update({node: utils[node] - demand[node]})
 
     nx.set_node_attributes(G, name='util', values=utils)
@@ -73,7 +70,7 @@ def r_tree(nodes, height=None):
     return G
 
 
-def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
+def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
     '''
     Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
     with probability edge_prob. Guaranteed to be a connected graph.
@@ -89,7 +86,7 @@ def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
     # guarantee G is connected
     while not nx.is_connected(G):
         G = nx.fast_gnp_random_graph(n, edge_prob)
- 
+
     utils = {}
     demand = {}
     # for a given node, income = util - demand
@@ -107,18 +104,20 @@ def r_graph(n, edge_prob, util_range=[1,4], demand_range=[1,2]):
 
     return G
 
-def r_2d_graph(n, m, util_range=[1,4], demand_range=[1,2]):
+
+def r_2d_graph(n, m, util_range=[1, 4], demand_range=[1, 2]):
     '''
     Generates a random nxm 2d grid_graph, with random utility and demand for each node
 
-    :param nodes: Length of side of grid
+    :param m: side of grid len
+    :param n: ** above
     :param util_range: range to generate random utility from (inclusive)
     :param demand_range: range to generate random demand from (inclusive)
     :return: Random grid_graph with nxm nodes.
     '''
-    G = nx.grid_graph(dim=[n,m])
+    G = nx.grid_graph(dim=[n, m])
     G = nx.convert_node_labels_to_integers(G)
-    
+
     utils = {}
     demand = {}
     # for a given node, income = util - demand
@@ -143,6 +142,7 @@ def update(G, demand, utils):
 
     return G
 
+
 def evaluate_total_income(H):
     '''
     Given a graph (or subgraph) H, determines the total "income" of the graph.
@@ -156,6 +156,7 @@ def evaluate_total_income(H):
         total_income += node_income
 
     return total_income
+
 
 def merge_nodes(H, root, v):
     '''
@@ -176,6 +177,7 @@ def merge_nodes(H, root, v):
 
     return G
 
+
 def plot_graph(G, root, dir, pos=None):
     '''
     Plots a graph using pyplot, saves it in dir
@@ -190,7 +192,7 @@ def plot_graph(G, root, dir, pos=None):
 
     # Create a [utils, demand] label for each node
     labels = {}
-    for (k,v), (k2,v2) in zip(utils.items(), demand.items()):
+    for (k, v), (k2, v2) in zip(utils.items(), demand.items()):
         labels[k] = ['n{0}'.format(k), v, v2]
 
     # color the root node red, all other nodes green
@@ -200,11 +202,11 @@ def plot_graph(G, root, dir, pos=None):
             color.append('green')
         else:
             color.append('red')
-    
+
     # fix the position to be consistent across all graphs
     if pos is None:
         pos = nx.spring_layout(G)
-    
+
     nx.draw(G, with_labels=True, labels=labels, node_size=1500, node_color=color, pos=pos)
 
     plt.draw()
@@ -214,6 +216,7 @@ def plot_graph(G, root, dir, pos=None):
     plt.clf()
 
     return pos
+
 
 def get_root(G):
     '''
@@ -228,6 +231,7 @@ def get_root(G):
     root = degrees[0][0]
 
     return root
+
 
 def par_max_util_configs(G, independent_nodes):
     '''
@@ -247,6 +251,7 @@ def par_max_util_configs(G, independent_nodes):
     all_permutations = [[tuple(independent_nodes), config, G] for config in all_permutations]
 
     return all_permutations
+
 
 def prune_map(config_graph):
     '''
@@ -275,6 +280,7 @@ def prune_map(config_graph):
 
     return config
 
+
 def calc_height(G, root):
     '''
     Calculate height of tree, longest path from root to leaf
@@ -287,6 +293,7 @@ def calc_height(G, root):
     path_lengths = nx.shortest_path_length(G, root)
 
     return max(path_lengths.values())
+
 
 def plot_bar_x(data, label, dir):
     '''
@@ -307,6 +314,7 @@ def plot_bar_x(data, label, dir):
     # plt.title('Time to Compute Optimal Configuration for Tree of Size N')
 
     plt.savefig(dir)
+
 
 def DP_optimal(G, independent_nodes, resources):
     '''
@@ -330,16 +338,16 @@ def DP_optimal(G, independent_nodes, resources):
     already_warned = False
     for d_vj in demand.values():
         for d_vi in demand.values():
-            if d_vj != d_vi and (d_vj + d_vi <= (2*C - 1)) and not already_warned:
+            if d_vj != d_vi and (d_vj + d_vi <= (2 * C - 1)) and not already_warned:
                 print("***********WARNING***********")
                 print("Calculation of optimal may not be correct")
                 print("Please make sure demand(vj) + demand(vi) <= 2C - 1 for all pairs (vj, vi) in G")
-                print(d_vj, "+", d_vi, "<=", 2*C - 1, "\n")
+                print(d_vj, "+", d_vi, "<=", 2 * C - 1, "\n")
                 already_warned = True
 
     # note: use (V+1) in range since it is not inclusive
     vertex_set = frozenset(range(G.number_of_nodes())) - frozenset(independent_nodes)
-   
+
     # Init Z and B dicts, Z for saving and B for printing out config at end
     Z = {}
     B = {}
@@ -348,13 +356,13 @@ def DP_optimal(G, independent_nodes, resources):
     # save 0 utility at the emptyset hash
     Z[(frozenset([])).__hash__()] = 0
 
-    for s in range(1, V+1):
+    for s in range(1, V + 1):
         # generate all |s| size subsets
         s_node_subsets = list(itertools.combinations(list(vertex_set), s))
         for X in s_node_subsets:
-            #v_js : a set of functional nodes
+            # v_js : a set of functional nodes
             v_js = frozenset(range(G.number_of_nodes())) - frozenset(X)
-            
+
             # generate list of nodes adjacent to any functional nodes
             adj_nodes = []
             for v_i in X:
@@ -371,13 +379,13 @@ def DP_optimal(G, independent_nodes, resources):
                 if q_ > q:
                     q = q_
                     B[frozenset(X).__hash__()] = v_i
-                #endif
-            #endfor
+                # endif
+            # endfor
 
             Z[(frozenset(X)).__hash__()] = q
-        #endfor
-    #endfor
-    
+        # endfor
+    # endfor
+
     # We know independent nodes are first to be recovered
     opt_plan = independent_nodes
     Y = set([])
@@ -391,6 +399,7 @@ def DP_optimal(G, independent_nodes, resources):
 
     # return (max total util, recovery config)
     return (Z[vertex_set.__hash__()], opt_plan)
+
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, debug=False, clean=True):
     '''
@@ -426,7 +435,7 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, d
 
     demand = nx.get_node_attributes(G, 'demand')
     utils = nx.get_node_attributes(G, 'util')
-    
+
     # remaining resources is just r - d if we have more than we need
     # or 0 if it is a perfect multiple
     # or the first multiple of resources > demand[root] - resources e.g. for d = 5 and r = 3, ceil(5/3)*5 = 6 -> 6-5 = 1 remaining resource
@@ -439,7 +448,7 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, d
             remaining_resources = 0
             total_utility += current_utility
         else:
-            remaining_resources = math.ceil(demand[root]/resources)*resources - demand[root]
+            remaining_resources = math.ceil(demand[root] / resources) * resources - demand[root]
 
         if debug:
             print('Remaining resources: ', remaining_resources)
@@ -492,12 +501,13 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, d
 
         # choose the best move (look how pythonic this is)
         recovery_nodes = [key for key in possible_recovery if possible_recovery[key] == max(possible_recovery.values())]
-        
+
         if debug:
             print(recovery_nodes)
 
         # if multiple max nodes, choose the one with the best 'recovery ratio'
-        max_ratio = 0; recovery_node = recovery_nodes[0]
+        max_ratio = 0;
+        recovery_node = recovery_nodes[0]
         for node in recovery_nodes:
             ratio = utils[node] / demand[node]
             if ratio > max_ratio:

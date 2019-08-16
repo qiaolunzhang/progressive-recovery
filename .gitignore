@@ -4,5 +4,5 @@ RL/logs/
 RL/*.png
 __pycache__
 RL/__pycache__
-RL/experiments/*.gpickle
+RL/experiments/*
 .idea/*
