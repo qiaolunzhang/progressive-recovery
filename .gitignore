@@ -1,5 +1,6 @@
 plots/*
 RL/weights/
+RL/reward_graph.png
 RL/logs/
 RL/*.png
 __pycache__
