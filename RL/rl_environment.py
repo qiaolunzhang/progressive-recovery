@@ -6,17 +6,21 @@ import itertools
 import random
 import time
 
+
+# A reinforcement learning environment for the progressive recovery problem. Given a graph G, our states are vectors
+# of length NumNodes(G), actions are choosing two nodes to recover (an index into the list of all 2-permutations of
+# nodes), and reward is the sum of the utilities of all functional nodes.
 class environment:
     def __init__(self, G, independent_nodes, resources):
-        '''
+        """
         :param G: networkx graph with utility and demand attribute set for each node
         :param independent_nodes: Initial independent nodes of G
         :param resources: resources per recovery step (used in calculation of maximum rounds)
-        '''
+        """
         self.G = G
         self.number_of_nodes = G.number_of_nodes()
 
-        # stays constant across episodes so when we reset we do it cleanly
+        # G_constant is our graph that stays constant across episodes so when we reset we do it cleanly
         self.G_constant = copy.deepcopy(G)
         self.independent_nodes = independent_nodes
 
@@ -25,7 +29,7 @@ class environment:
         # state is an indicator matrix for each node in G. 0 -> node is offline
         # initially, every node is except for independent nodes
         self.state = [0 for x in range(self.number_of_nodes)]
-        print('indepedent nodes:', self.independent_nodes)
+        print('independent nodes:', self.independent_nodes)
         for node in self.independent_nodes:
             self.state[node] = 1
 
@@ -95,12 +99,12 @@ class environment:
         return self.actions_permutations.index(a)
 
     def random_action(self, return_indices=False):
-        '''
-        @@ TODO: fix the random action for the first action taken in an episode
+        """
+        TODO: fix the random action for the first action taken in an episode
         Random action that does not saturate and is guaranteed to be adjacent to a functional node
 
         :return: random action index in self.actions_permutations
-        '''
+        """
         # get demand values of our graph
         demand = nx.get_node_attributes(self.G_constant, 'demand')
         stepwise_demand = nx.get_node_attributes(self.G, 'demand')
@@ -115,7 +119,7 @@ class environment:
         # possible nodes must be adjacent to either functional or independent nodes
         adjacent_to = functional_nodes + self.independent_nodes
         adjacent_to = list(set(adjacent_to))
-        
+
         # print('adjto', adjacent_to)
         possible_recovery = []
         for adj_node in adjacent_to:
@@ -123,11 +127,11 @@ class environment:
                 if node in self.G_constant.neighbors(adj_node) and node != adj_node and demand[node] > 0:
                     possible_recovery.append(node)
 
-                    # if we can fully recover this node at a given time step, then we may start allocating resources to it's neighbors
+                    # if we can fully recover this node at a given time step, then we may start allocating resources
+                    # to it's neighbors
                     if node in stepwise_demand and stepwise_demand[node] < self.resources:
                         for neighbor_of_node in self.G_constant.neighbors(node):
                             possible_recovery.append(neighbor_of_node)
-
 
         possible_recovery = list(set(possible_recovery) - set(self.independent_nodes))
         # print(possible_recovery)
@@ -143,9 +147,7 @@ class environment:
             random_action_list = list(itertools.permutations(possible_recovery, 2))
             random_action_choice = random.choice(random_action_list)
 
-        r = []
-
-        # we may want to return the list of random actions for the 1-\epsilon case
+        # we may want to return the list of random actions for the $$1-\epsilon$$ case
         if return_indices:
             if len(possible_recovery) is 1:
                 r = [self.actions_permutations.index(random_action_choice)]
@@ -160,15 +162,14 @@ class environment:
 
         return r
 
-
     def convert_action(self, action):
-        '''
-        Given an action a, which is an index into a permutation list of length num_nodesP2, we return
+        """
+        Given an action a, which is an index into a permutation list of length NumPerms(num_nodes, 2), we return
         the action represented as a vector to be applied to our demand dict.
 
         :param action: index into list of permutations.
         :return: number_of_nodes length vector representing the action to be taken
-        '''
+        """
         # check for a random action first
         if action == -1:
             action = random.randint(0, len(self.actions_permutations) - 1)
@@ -192,15 +193,15 @@ class environment:
         return true_action
 
     def step(self, action, action_is_index=True, debug=False, neg=True):
-        '''
+        """
         Applies a partition of resources to the graph G
 
         :param action: index to a specific |V(G)| len vector, where sum(action) == resources at a time step.
         :param action_is_index: If we wish to test the best config, we only have real action vectors so no need to convert. Usually only have indices
-        :param debug: output data for test runs
-        :param neg: we scale our rewards negatively to not inflate Q-value, preserve more information.
+        :param debug: print output data for test runs
+        :param neg: we scale our rewards negatively to not inflate Q-value and preserve more information.
         :return: state, reward, done
-        '''
+        """
         start = time.time()
         # turn index-based permutation into a vector representation
         if action_is_index:
@@ -230,11 +231,11 @@ class environment:
 
         if debug:
             print('count_utility', count_utility)
-        
+
         # utility at this time step is reward
         # if neg, we subtract potential recoveries from this time step
         if neg:
-            reward = sum([utils[x] if x in count_utility else -1*utils[x] for x in range(len(action))])
+            reward = sum([utils[x] if x in count_utility else -1 * utils[x] for x in range(len(action))])
         else:
             reward = sum([utils[x] if x in count_utility else 0 for x in range(len(action))])
         # convert demand back to dict
@@ -250,27 +251,27 @@ class environment:
         # check if we have reached round limit, which is ceil(sum(demands of non-independent nodes) / resources per turn)
         independent_node_demand = [self.start_demand[x] for x in self.independent_nodes]
 
-        if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand))/ self.resources)):
+        if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand)) / self.resources)):
             self.done = True
 
         self.round += 1
         end = time.time()
         # print('step time', end - start)
-        
+
         # return self.state, reward, self.done
         return demand_state, reward, self.done
 
     def reset(self):
-        '''
+        """
         Reset our state to starting state, return an initial observation
 
         :return: initial state, 'False' done boolean
-        '''
+        """
         self.G = copy.deepcopy(self.G_constant)
         self.state = [0 for x in range(self.number_of_nodes)]
         for node in self.independent_nodes:
             self.state[node] = 1
-        
+
         # reset demands, we don't modify utils
         nx.set_node_attributes(self.G_constant, name='demand', values=self.start_demand)
 

@@ -4,8 +4,6 @@ import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, \
     plot_bar_x, read_gml
 import numpy as np
-import random
-import itertools
 from ratio_heuristic import ratio_heuristic
 from random_heuristic import random_heuristic
 import time
@@ -26,7 +24,7 @@ def generate_graph(nodes, utils=[1, 4], demands=[1, 2], load_dir=None, type='ran
         if load_dir:
             graph = nx.read_gpickle('experiments/{0}_rgraph.gpickle'.format(nodes))
         else:
-            graph = r_graph(num_nodes, 0.2, utils, demands)
+            graph = r_graph(nodes, 0.2, utils, demands)
         save = 'experiments/{0}_rgraph.txt'.format(nodes)
         real_node_num = nodes
 
@@ -39,7 +37,10 @@ def generate_graph(nodes, utils=[1, 4], demands=[1, 2], load_dir=None, type='ran
         save = 'experiments/{0}x{0}.gpickle'.format(nodes)
         real_node_num = nodes ** 2
 
-    # Real number of nodes may be different from input (in the case of grid graph)
+    else:
+        raise NotImplementedError
+
+    # Real number of nodes may be different from input node num (in the case of grid graph)
     return graph, save, real_node_num
 
 
@@ -48,11 +49,11 @@ def main():
     load_path = "weights/weights.ckpt"
     save_path = "weights/weights.ckpt"
 
-    # Generate graph for training
+    # Generate graph for training...
     resources = 1
     G, reward_save, num_nodes = generate_graph(nodes=40, type='grid')
 
-    # Read GML (DIGEX Graph)
+    # ...or read GML (DIGEX topology)
     # G = read_gml('../gml/DIGEX.gml')
     # num_nodes = len(G)
     # resources = 1
@@ -159,7 +160,6 @@ def main():
                 end = time.time()
                 print('Episode time:', end - start)
                 start = time.time()
-
                 break
 
             # Save observation
@@ -202,9 +202,7 @@ def main():
         # Save observation
         observation = observation_
 
-    print()
-    print('final epsilon=0 reward', final_reward)
-    print()
+    print('final epsilon=0 reward', final_reward, '\n')
 
     # TESTING
     # convert our best optimal action sequence to vector representation, test it for correctness
@@ -217,29 +215,25 @@ def main():
     true_r = 0
     for action in opt:
         # print('action index', action)
+        # debug will print the action at each step as a vector
         _, r, d = env.step(action, debug=True)
         true_r += r
 
-    # if we have a reasonable number of nodes, we can compute optimal
+    # if we have a reasonable number of nodes, we can compute optimal using DP
     if num_nodes < 24:
         dp_time = time.time()
         print("Optimal:", DP_optimal(G, [root], resources))
         dp_time_end = time.time()
         print('DP time:', dp_time_end - dp_time)
 
-    print()
-    print('random herustic', random_heuristic(G, [root], resources))
-    print()
-    print('Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False))
-    print()
+    print('\n Random Heuristic', random_heuristic(G, [root], resources), '\n')
+    print('\n Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False), '\n')
     ratio_time_start = time.time()
-    print("Ratio Heuristic", ratio_heuristic(G, [root], resources))
+    print('\n Ratio Heuristic', ratio_heuristic(G, [root], resources))
     ratio_time_end = time.time()
     print('Ratio time:', ratio_time_end - ratio_time_start)
-    print()
-    print('reward during training:', reward)
-    print('RL method time (s): ', overall_end - overall_start)
-    print()
+    print('\n reward during training:', reward)
+    print('RL method time (s): ', overall_end - overall_start, '\n')
 
     plot_bar_x(rewards, 'episode', 'reward_graph.png')
     with open(reward_save, 'w') as f:

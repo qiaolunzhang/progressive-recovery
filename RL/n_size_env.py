@@ -6,6 +6,10 @@ from graph_helper import r_tree, get_root, DP_optimal, plot_graph
 import random
 
 
+# TODO: Fully test. Have not used this yet.
+# This is another version of rl_environment which only has n-actions. Instead of "allocating resources" at each time
+# step, we simply choose what node to bring online. Therefore, each episode will only last n steps, given a graph
+# G with n nodes.
 class n_environment:
     def __init__(self, G, independent_nodes, resources):
         '''
@@ -25,7 +29,7 @@ class n_environment:
         # state is an indicator matrix for each node in G. 0 -> node is offline
         # initially, every node is except for independent nodes
         self.state = [0 for x in range(self.number_of_nodes)]
-        print('indepedent nodes:', self.independent_nodes)
+        print('independent nodes:', self.independent_nodes)
         for node in self.independent_nodes:
             self.state[node] = 1
 
@@ -116,11 +120,11 @@ class n_environment:
         return new_state, reward, self.done
 
     def reset(self):
-        '''
-        Reset our state to starting state, return an initial observation
+        """
+        Reset our state to starting state, return the initial observation
 
         :return: initial state, 'False' done boolean
-        '''
+        """
         self.G = copy.deepcopy(self.G_constant)
         self.state = [0 for x in range(self.number_of_nodes)]
         for node in self.independent_nodes:
