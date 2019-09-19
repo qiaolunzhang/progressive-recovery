@@ -35,26 +35,26 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
             graph = nx.read_gpickle('experiments/{0}x{0}.gpickle'.format(nodes))
         else:
             graph = r_2d_graph(nodes, nodes, utils, demands)
-        save = 'experiments/{0}x{0}.gpickle'.format(nodes)
+        save = 'experiments/{0}x{0}.txt'.format(nodes)
         real_node_num = nodes ** 2
 
     # Generate adversarial examples for the ratio heuristic
     elif type == 'adversarial':
         graph = adv_graph(nodes, utils, demands)
-        save = 'experiments/{0}_adv_graph.gpickle'.format(nodes)
+        save = 'experiments/{0}_adv_graph.txt'.format(nodes)
         real_node_num = nodes
 
     # Read a normal gml file and randomly pick utils, demands
     elif type == 'gml':
         graph = read_gml(load_dir, utils, demands)
-        save = 'experiments/{0}.gpickle'.format('gml')
+        save = 'experiments/{0}.txt'.format('gml')
         real_node_num = len(graph)
 
     # Read a gml file and randomly pick utils, demands but also
     # embed an adversarial example somewhere in the graph.
     elif type == 'gml_adversarial':
         graph = read_gml_adversarial(load_dir, utils, demands)
-        save = 'experiments/{0}_adv_graph.gpickle'.format('gml')
+        save = 'experiments/{0}_adv_graph.txt'.format('gml')
         real_node_num = len(graph)
 
     else:
