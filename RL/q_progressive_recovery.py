@@ -47,14 +47,14 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
     # Read a normal gml file and randomly pick utils, demands
     elif type == 'gml':
         graph = read_gml(load_dir, utils, demands)
-        save = 'experiments/{0}.gpickle'.format(load_dir)
+        save = 'experiments/{0}.gpickle'.format('gml')
         real_node_num = len(graph)
 
     # Read a gml file and randomly pick utils, demands but also
     # embed an adversarial example somewhere in the graph.
     elif type == 'gml_adversarial':
         graph = read_gml_adversarial(load_dir, utils, demands)
-        save = 'experiments/{0}_adv_graph.gpickle'.format(load_dir)
+        save = 'experiments/{0}_adv_graph.gpickle'.format('gml')
         real_node_num = len(graph)
 
     else:
@@ -140,7 +140,7 @@ def main():
                 # action = env.random_action()
                 # now choose between truly random action and a ratio action
                 r = random.random()
-                if r < 0.2:
+                if r < 0.8:
                     action = env.random_action()
                 else:
                     action = env.ratio_action()
