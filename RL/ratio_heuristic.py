@@ -125,8 +125,9 @@ class RecoveryEnv:
 
         return total_utility
 
+
 def ratio_heuristic(G, independent_nodes, resources):
-    '''
+    """
     Given a graph with attributes utility and demand for each node, we calculate the best greedy stepwise
     recovery based on the ratio of utility to demand. We return the total utility of this recovery.
 
@@ -134,7 +135,7 @@ def ratio_heuristic(G, independent_nodes, resources):
     :param independent_nodes: independent nodes of graph G
     :param resources: resources per recovery time step
     :return: total utility of the ordered recovery sequence, excluding independent nodes
-    '''
+    """
     # set starting functional nodes to the given independent nodes
     functional_nodes = independent_nodes.copy()
     util = nx.get_node_attributes(G, 'util')

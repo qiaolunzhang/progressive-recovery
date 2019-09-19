@@ -2,7 +2,7 @@ from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, \
-    plot_bar_x, read_gml
+    plot_bar_x, read_gml, adv_graph
 import numpy as np
 from ratio_heuristic import ratio_heuristic
 from random_heuristic import random_heuristic
@@ -37,6 +37,12 @@ def generate_graph(nodes, utils=[1, 4], demands=[1, 2], load_dir=None, type='ran
         save = 'experiments/{0}x{0}.gpickle'.format(nodes)
         real_node_num = nodes ** 2
 
+    # Generate adversarial examples for the ratio heuristic
+    elif type == 'adversarial':
+        graph = adv_graph(nodes, utils, demands)
+        save = 'experiments/{0}_adv_graph.gpickle'.format(nodes)
+        real_node_num = nodes
+
     else:
         raise NotImplementedError
 
@@ -51,7 +57,7 @@ def main():
 
     # Generate graph for training...
     resources = 1
-    G, reward_save, num_nodes = generate_graph(nodes=40, type='grid')
+    G, reward_save, num_nodes = generate_graph(nodes=7, type='adversarial')
 
     # ...or read GML (DIGEX topology)
     # G = read_gml('../gml/DIGEX.gml')
@@ -65,12 +71,21 @@ def main():
     except:
         print('No display')
 
-    # Always use root = 2 for consistency
-    root = 2
+    # Pick an arbitrary node to be the root
+    root = 0
+
+    # We may want to include the graph laplacian in the observation space
+    # Graph laplacian is D - A
+    # laplacian_matrix = nx.laplacian_matrix(G).toarray()
+    # flat_laplacian = laplacian_matrix.flatten()
+
+    # Build the learning environment
     env = environment(G, [root], resources)
-    n_y = len(env.actions_permutations)
     print('num_edges:', G.number_of_edges())
     print("Ratio Heuristic", ratio_heuristic(G, [root], resources), '\n')
+
+    # Our observation space
+    n_y = len(env.actions_permutations)
 
     # Initialize DQN
     DQN = DeepQNetwork(
@@ -86,7 +101,8 @@ def main():
         epsilon_min=0.1,
         epsilon_greedy_decrement=1e-4,
         # load_path=load_path,
-        # save_path=save_path
+        # save_path=save_path,
+        # laplacian=flat_laplacian
     )
 
     episodes = 1000
@@ -205,7 +221,7 @@ def main():
     print('final epsilon=0 reward', final_reward, '\n')
 
     # TESTING
-    # convert our best optimal action sequence to vector representation, test it for correctness
+    # convert our 'best' optimal action sequence to the vector representation, test it for correctness
     opt = optimal_action_sequences[len(optimal_action_sequences) - 1][0]
     reward = optimal_action_sequences[len(optimal_action_sequences) - 1][1]
 
@@ -219,7 +235,7 @@ def main():
         _, r, d = env.step(action, debug=True)
         true_r += r
 
-    # if we have a reasonable number of nodes, we can compute optimal using DP
+    # if we have a reasonable number of nodes (< 24), we can compute optimal using DP
     if num_nodes < 24:
         dp_time = time.time()
         print("Optimal:", DP_optimal(G, [root], resources))
@@ -228,10 +244,12 @@ def main():
 
     print('\n Random Heuristic', random_heuristic(G, [root], resources), '\n')
     print('\n Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False), '\n')
+
     ratio_time_start = time.time()
     print('\n Ratio Heuristic', ratio_heuristic(G, [root], resources))
     ratio_time_end = time.time()
     print('Ratio time:', ratio_time_end - ratio_time_start)
+
     print('\n reward during training:', reward)
     print('RL method time (s): ', overall_end - overall_start, '\n')
 

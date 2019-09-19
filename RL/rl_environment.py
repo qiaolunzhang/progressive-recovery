@@ -197,7 +197,8 @@ class environment:
         Applies a partition of resources to the graph G
 
         :param action: index to a specific |V(G)| len vector, where sum(action) == resources at a time step.
-        :param action_is_index: If we wish to test the best config, we only have real action vectors so no need to convert. Usually only have indices
+        :param action_is_index: If we wish to test the best config, we only have real action vectors
+        so no need to convert. Usually, we only have the index representation.
         :param debug: print output data for test runs
         :param neg: we scale our rewards negatively to not inflate Q-value and preserve more information.
         :return: state, reward, done
@@ -248,7 +249,7 @@ class environment:
         if self.state == [1 for x in self.state]:
             self.done = True
 
-        # check if we have reached round limit, which is ceil(sum(demands of non-independent nodes) / resources per turn)
+        # check if reached round limit, which is ceil(sum(demands of non-independent nodes) / resources per turn)
         independent_node_demand = [self.start_demand[x] for x in self.independent_nodes]
 
         if self.round >= (math.ceil((sum(self.start_demand.values()) - sum(independent_node_demand)) / self.resources)):
@@ -282,8 +283,8 @@ class environment:
         return self.state, self.done
 
 
-def main():
-    # test
+def sanity_test():
+    # Run a quick sanity check
     num_nodes = 7
     G = r_tree(num_nodes)
     plot_graph(G, get_root(G), 'environment_debug_graph.png')
@@ -297,8 +298,3 @@ def main():
     while not env.done:
         print(env.step(random.randint(0, 10)))
         print()
-
-
-if __name__ == "__main__":
-    # main()
-    None

@@ -35,7 +35,8 @@ class DeepQNetwork:
             batch_size=32,
             reward_decay=0.9,
             load_path=None,
-            save_path=None
+            save_path=None,
+            laplacian=None
     ):
 
         # n_y is action space
@@ -53,6 +54,7 @@ class DeepQNetwork:
         self.batch_size = batch_size
         self.reward_decay = reward_decay  # this is gamma
         self.save_path = save_path
+        self.laplacian = laplacian
 
         self.memory_counter = 0
         self.learn_step_counter = 0

@@ -105,6 +105,51 @@ def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
     return G
 
 
+def adv_graph(nodes, util_range=[1, 4], demand_range=[1, 2]):
+    '''
+    Generates a graph that is an adversarial example for the ratio heuristic. See
+    our paper for the general adversarial graph diagram.
+
+    :param nodes: number of nodes >= 3
+    :param util_range:
+    :param demand_range:
+    :return: networkx graph object
+    '''
+
+    # Create our initial node (will be recovered as input to problem)
+    utils = {0: util_range[0]}
+    demand = {0: demand_range[0]}
+
+    # init graph and add in all nodes
+    G = nx.Graph()
+    G.add_node(nodes-1)
+
+    # construct edges / utils / demands appropriately
+    # utils.update({node: random.randint(util_range[0], util_range[1])})
+    for node in range(1, nodes-2):
+        G.add_edge(0, node)
+        utils.update({node: util_range[0]})
+        demand.update({node: demand_range[1] - 1})
+
+    # Now add the ratio counter example node(s)
+    G.add_edge(0, nodes - 2)
+    utils.update({nodes - 2: util_range[0]})
+    demand.update({nodes - 2: demand_range[1]})
+
+    # Final node (best node to recover first)
+    G.add_edge(nodes - 2, nodes - 1)
+    utils.update({nodes - 1: util_range[1]})
+    demand.update({nodes - 1: demand_range[0]})
+
+    # Set income and put all dicts in nx.graph
+    income = {utils[x] - demand[x] for x in range(nodes)}
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+
 def r_2d_graph(n, m, util_range=[1, 4], demand_range=[1, 2]):
     '''
     Generates a random nxm 2d grid_graph, with random utility and demand for each node
