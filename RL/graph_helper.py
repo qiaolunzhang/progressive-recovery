@@ -38,13 +38,13 @@ def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
 
 
 def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2]):
-    '''
+    """
 
     :param DIR:
     :param util_range:
     :param demand_range:
     :return:
-    '''
+    """
 
     # first read_gml
     G = nx.read_gml(DIR)
@@ -79,7 +79,7 @@ def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2]):
 
 
 def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
-    '''
+    """
     Generates a random tree, with random utility and demand for each node
 
     :param nodes: Number of nodes in the tree
@@ -87,7 +87,7 @@ def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
     :param demand_range: (above)
     :param height: (optional) produces tree with given height.
     :return: Random tree with len{V} = nodes
-    '''
+    """
     G = nx.random_tree(nodes)
     if height is not None:
         while calc_height(G, get_root(G)) is not height:
@@ -112,7 +112,7 @@ def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
 
 
 def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
-    '''
+    """
     Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
     with probability edge_prob. Guaranteed to be a connected graph.
 
@@ -121,7 +121,7 @@ def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
     :param util_range: range to generate random utility from (inclusive)
     :param demand_range: range to generate random demand from (inclusive)
     :return: Random random graph with util, demand set for each node.
-    '''
+    """
     G = nx.fast_gnp_random_graph(n, edge_prob)
 
     # guarantee G is connected
@@ -147,7 +147,7 @@ def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
 
 
 def adv_graph(nodes, util_range=[1, 4], demand_range=[1, 2]):
-    '''
+    """
     Generates a graph that is an adversarial example for the ratio heuristic. See
     our paper for the general adversarial graph diagram.
 
@@ -155,7 +155,7 @@ def adv_graph(nodes, util_range=[1, 4], demand_range=[1, 2]):
     :param util_range:
     :param demand_range:
     :return: networkx graph object
-    '''
+    """
 
     # Create our initial node (will be recovered as input to problem)
     utils = {0: util_range[0]}
@@ -192,7 +192,7 @@ def adv_graph(nodes, util_range=[1, 4], demand_range=[1, 2]):
 
 
 def r_2d_graph(n, m, util_range=[1, 4], demand_range=[1, 2]):
-    '''
+    """
     Generates a random nxm 2d grid_graph, with random utility and demand for each node
 
     :param m: side of grid len
@@ -200,7 +200,7 @@ def r_2d_graph(n, m, util_range=[1, 4], demand_range=[1, 2]):
     :param util_range: range to generate random utility from (inclusive)
     :param demand_range: range to generate random demand from (inclusive)
     :return: Random grid_graph with nxm nodes.
-    '''
+    """
     G = nx.grid_graph(dim=[n, m])
     G = nx.convert_node_labels_to_integers(G)
 
@@ -230,12 +230,12 @@ def update(G, demand, utils):
 
 
 def evaluate_total_income(H):
-    '''
+    """
     Given a graph (or subgraph) H, determines the total "income" of the graph.
 
     :param H: networkx graph
     :return: total income of graph: the sum over all nodes of [utilities - demand]
-    '''
+    """
     incomes = nx.get_node_attributes(H, 'income')
     total_income = 0
     for node, node_income in incomes.items():
@@ -245,14 +245,14 @@ def evaluate_total_income(H):
 
 
 def merge_nodes(H, root, v):
-    '''
+    """
     Merges two nodes in a given graph, returns a new one
 
     :param H: networkx graph
     :param root: root node to merge
     :param v: node to merge with root
     :return: new graph G, with V_H - 1 vertices and E_H or E_H - 1 edges.
-    '''
+    """
     G = H.copy()
     neighbors = G.neighbors(v)
     for node in neighbors:
@@ -265,14 +265,14 @@ def merge_nodes(H, root, v):
 
 
 def plot_graph(G, root, dir, pos=None):
-    '''
+    """
     Plots a graph using pyplot, saves it in dir
 
     :param G: networkx graph
     :param root: Root node of graph. Colored red.
     :param dir: Directory to save image
     :param pos: Used to keep similar graph plot style across multiple plots. Dict of positions for each node.
-    '''
+    """
     utils = nx.get_node_attributes(G, 'util')
     demand = nx.get_node_attributes(G, 'demand')
 
@@ -307,12 +307,12 @@ def plot_graph(G, root, dir, pos=None):
 
 
 def get_root(G):
-    '''
+    """
     Finds root of tree (node with highest degree). Not necessarily unique.
 
     :param G: networkx Graph
     :return: root of tree
-    '''
+    """
     # degrees is a list of tuples of (node, deg) sorted by degree, highest first.
     degrees = sorted(G.degree, key=lambda x: x[1], reverse=True)
     # choose root as highest degree node (may not be unique)
@@ -322,13 +322,13 @@ def get_root(G):
 
 
 def par_max_util_configs(G, independent_nodes):
-    '''
-    Parallelized version of max_util_configs. 
-    
+    """
+    Parallelized version of max_util_configs.
+
     :param G: networkx graph
     :param root: list of independent nodes in G (these don't need to be recovered)
     :return: list of possibly maximum util configurations
-    '''
+    """
     number_of_nodes = G.number_of_nodes()
 
     # non independent nodes are nodes we need to recover; they are all nodes that are not-indepedent
@@ -342,12 +342,12 @@ def par_max_util_configs(G, independent_nodes):
 
 
 def prune_map(config_graph):
-    '''
+    """
     Lambda function to apply using parallel pool.map
-    
+
     :param config_graph: [independent_nodes, config, G] where G contains the graph the config is based on, and config is a node recovery order
     :return: [] if config is not valid, or config if it is a valid recovery configuration
-    '''
+    """
     independent_nodes = config_graph[0]
     config = independent_nodes + config_graph[1]
     G = config_graph[2]
@@ -370,13 +370,13 @@ def prune_map(config_graph):
 
 
 def calc_height(G, root):
-    '''
+    """
     Calculate height of tree, longest path from root to leaf
 
     :param G: networkx graph
     :param root: Root of tree
     :return: height of G assuming tree.
-    '''
+    """
     # dict of shortest path lengths
     path_lengths = nx.shortest_path_length(G, root)
 
@@ -384,7 +384,7 @@ def calc_height(G, root):
 
 
 def plot_bar_x(data, label, dir, title='RL Rewards Plot', xlab='Number of Nodes', ylab='Total utility'):
-    '''
+    """
     Plot 1d data as histogram with labels along x axis
 
     :param data: 1-D array of data to graph
@@ -394,7 +394,7 @@ def plot_bar_x(data, label, dir, title='RL Rewards Plot', xlab='Number of Nodes'
     :param xlab: X label of graph (string)
     :param ylab: y label of graph (string)
     :return: null
-    '''
+    """
     index = range(len(data))
     plt.plot(index, data)
     plt.xlabel(xlab)
@@ -406,14 +406,14 @@ def plot_bar_x(data, label, dir, title='RL Rewards Plot', xlab='Number of Nodes'
 
 
 def DP_optimal(G, independent_nodes, resources):
-    '''
+    """
     DP algorithm calculating optimal recovery utility. See paper for algorithm details.
 
     :param G: networkx graph with attributes "util" and "demand" for each node
     :param independent_nodes: already functional nodes of the problem, assumed to be list of nodes in G
     :param resources: resources per turn
     :return: (max total util, recovery config) tuple
-    '''
+    """
 
     # util and demand dicts
     util = nx.get_node_attributes(G, 'util')
@@ -491,10 +491,10 @@ def DP_optimal(G, independent_nodes, resources):
 
 
 def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, debug=False, clean=True):
-    '''
+    """
     |U - d| -- Heuristic
     Simulates recovery of a tree, starting at the root (independent) node. Assumes
-    that all other nodes are dependent and therefore to optimally recover, we 
+    that all other nodes are dependent and therefore to optimally recover, we
     branch out from the root. Our algorithm works by "merging" any recovered nodes
     into the root node, and re-evaluating all adjacent subtrees.
     Assumptions: Each node in the networkx graph G has the attributes:
@@ -506,7 +506,7 @@ def simulate_tree_recovery(G, resources, root, include_root=False, draw=False, d
     :param debug: output logs to std.out
     :param clean: Clean image dir before drawing image
     :return: root of G
-    '''
+    """
     if clean:
         # clean image dir
         folder = 'plots/trees'

@@ -1,6 +1,4 @@
 import networkx as nx
-import numpy as np
-import matplotlib.pyplot as plt
 from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_bar_x, r_tree, get_root, merge_nodes, r_graph, DP_optimal
 
 # TODO:
@@ -10,17 +8,17 @@ from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_b
 
 class RecoveryEnv:
     def __init__(self, G, independent_nodes):
-        '''
+        """
         __init__
         :param G: networkx graph
         :param independent_nodes: independent_nodes of graph G; e.g. where we start our recovery
-        '''
+        """
         self.network = G
         self.independent_nodes = independent_nodes
         self.root = self.independent_nodes[0]
 
     def recover(self, order, resources, include_independent_nodes=False, debug=False, draw=False):
-        '''
+        """
         Recover our network with the order given.
         :param order: |network| len list with order of nodes to recover
         :param resources: resources per time step (assumed constant)
@@ -28,7 +26,7 @@ class RecoveryEnv:
         :param debug: print step by step recovery order to check if correct
         :param draw: draw graph at each step of recovery
         :return: total utility
-        '''
+        """
         demand = nx.get_node_attributes(self.network, 'demand')
         utils = nx.get_node_attributes(self.network, 'util')
 
@@ -86,8 +84,9 @@ class RecoveryEnv:
                 total_utility += current_utility
                 continue
 
-            # If demand < supply this turn, we don't increment total utility yet because we still have resources leftover
-            # We recover that node, and note our remaining resources for the next turn
+            # If demand < supply this turn, we don't increment total utility yet
+            # because we still have resources leftover. We recover that node,
+            # and note our remaining resources for the next turn
             elif demand[recovery_node] < resources_this_turn:
                 remaining_resources = resources_this_turn - demand[recovery_node]
                 demand[recovery_node] = 0
@@ -97,7 +96,8 @@ class RecoveryEnv:
                 # next node to recover
                 node_recovery_index += 1
 
-                # unless we've finished the last node, in which case we increment total utility since we're done recovering completely
+                # unless we've finished the last node, in which case we increment
+                # total utility since we're done recovering completely
                 if node_recovery_index is len(order):
                     total_utility += current_utility
 
@@ -170,7 +170,6 @@ def ratio_heuristic(G, independent_nodes, resources):
     env = RecoveryEnv(G, independent_nodes)
     total_utility = env.recover(ordered, resources)
 
-
     return total_utility
 
 
@@ -180,6 +179,7 @@ def main():
         root = get_root(graph)
         print(ratio_heuristic(graph, [root], 1))
         print(DP_optimal(graph, [root], 1))
+
 
 if __name__ == '__main__':
     main()
