@@ -7,6 +7,7 @@ from graph_helper import plot_graph, calc_height, simulate_tree_recovery, plot_b
 # 1. Test multiple independent nodes for optimality (we are only comparing against U-D heuristic
 # for now)
 
+
 class RecoveryEnv:
     def __init__(self, G, independent_nodes):
         '''

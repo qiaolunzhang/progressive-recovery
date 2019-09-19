@@ -2,14 +2,15 @@ from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, \
-    plot_bar_x, read_gml, adv_graph
+    plot_bar_x, read_gml, adv_graph, read_gml_adversarial
 import numpy as np
 from ratio_heuristic import ratio_heuristic
 from random_heuristic import random_heuristic
 import time
+import random
 
 
-def generate_graph(nodes, utils=[1, 4], demands=[1, 2], load_dir=None, type='random_tree'):
+def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='random_tree'):
     # Generate random tree
     if type == 'random_tree':
         if load_dir:
@@ -43,6 +44,19 @@ def generate_graph(nodes, utils=[1, 4], demands=[1, 2], load_dir=None, type='ran
         save = 'experiments/{0}_adv_graph.gpickle'.format(nodes)
         real_node_num = nodes
 
+    # Read a normal gml file and randomly pick utils, demands
+    elif type == 'gml':
+        graph = read_gml(load_dir, utils, demands)
+        save = 'experiments/{0}.gpickle'.format(load_dir)
+        real_node_num = len(graph)
+
+    # Read a gml file and randomly pick utils, demands but also
+    # embed an adversarial example somewhere in the graph.
+    elif type == 'gml_adversarial':
+        graph = read_gml_adversarial(load_dir, utils, demands)
+        save = 'experiments/{0}_adv_graph.gpickle'.format(load_dir)
+        real_node_num = len(graph)
+
     else:
         raise NotImplementedError
 
@@ -57,22 +71,17 @@ def main():
 
     # Generate graph for training...
     resources = 1
-    G, reward_save, num_nodes = generate_graph(nodes=7, type='adversarial')
-
-    # ...or read GML (DIGEX topology)
-    # G = read_gml('../gml/DIGEX.gml')
-    # num_nodes = len(G)
-    # resources = 1
-
-    # Try plotting. If on ssh, don't bother since there are some necessary plt.draw() commands
-    # to plot a networkx graph.
-    try:
-        plot_graph(G, get_root(G), 'rl_graph.png')
-    except:
-        print('No display')
+    # G, reward_save, num_nodes = generate_graph(nodes=20, type='adversarial')
+    G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
 
     # Pick an arbitrary node to be the root
     root = 0
+    # Try plotting. If on ssh, don't bother since there are some necessary plt.draw() commands
+    # to plot a networkx graph.
+    try:
+        plot_graph(G, root, 'rl_graph.png')
+    except:
+        print('No display')
 
     # We may want to include the graph laplacian in the observation space
     # Graph laplacian is D - A
@@ -105,7 +114,7 @@ def main():
         # laplacian=flat_laplacian
     )
 
-    episodes = 1000
+    episodes = 500
     rewards = []
     total_steps_counter = 0
     episodes_since_max = 0
@@ -128,15 +137,13 @@ def main():
 
             # check for random action
             if action == -1:
+                # action = env.random_action()
                 # now choose between truly random action and a ratio action
-                # r = random.random()
-                action = env.random_action()
-                # if r < 0.2 and episode < 0:
-                #     action = env.random_action()
-                # elif episode < 0:
-                #     action = env.ratio_action()
-                # else:
-                #     action = env.random_action()
+                r = random.random()
+                if r < 0.2:
+                    action = env.random_action()
+                else:
+                    action = env.ratio_action()
 
             # save the taken action
             action_sequence.append(action)
@@ -243,7 +250,9 @@ def main():
         print('DP time:', dp_time_end - dp_time)
 
     print('\n Random Heuristic', random_heuristic(G, [root], resources), '\n')
-    print('\n Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False), '\n')
+
+    # Only works on trees
+    # print('\n Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False), '\n')
 
     ratio_time_start = time.time()
     print('\n Ratio Heuristic', ratio_heuristic(G, [root], resources))

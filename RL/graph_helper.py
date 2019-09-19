@@ -37,6 +37,47 @@ def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
     return G
 
 
+def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2]):
+    '''
+
+    :param DIR:
+    :param util_range:
+    :param demand_range:
+    :return:
+    '''
+
+    # first read_gml
+    G = nx.read_gml(DIR)
+    G = nx.convert_node_labels_to_integers(G)
+    print('reading {0}, num_nodes = '.format(DIR), len(G))
+
+    utils = {}
+    demand = {}
+
+    # random utils and demand for each node
+    for node in G.nodes:
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
+
+    # now we want to make a counter example node embedded somewhere within the graph
+    # all its neighbors have bad ratio.
+    num_nodes = G.number_of_nodes()
+    neighbors = G.neighbors(num_nodes - 2)
+    print('Adversarial node num: {0}'.format(num_nodes-2))
+    utils.update({num_nodes - 2: 20})
+    demand.update({num_nodes - 2: demand_range[0]})
+    for node in neighbors:
+        utils.update({node: util_range[0]})
+        demand.update({node: demand_range[1]})
+
+    income = {utils[x] - demand[x] for x in utils}
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+
 def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
     '''
     Generates a random tree, with random utility and demand for each node
@@ -251,7 +292,9 @@ def plot_graph(G, root, dir, pos=None):
     # fix the position to be consistent across all graphs
     if pos is None:
         pos = nx.spring_layout(G)
+        # pos = nx.spectral_layout(G)
 
+    plt.figure(figsize=(10, 8))
     nx.draw(G, with_labels=True, labels=labels, node_size=1500, node_color=color, pos=pos)
 
     plt.draw()
@@ -340,30 +383,31 @@ def calc_height(G, root):
     return max(path_lengths.values())
 
 
-def plot_bar_x(data, label, dir):
+def plot_bar_x(data, label, dir, title='RL Rewards Plot', xlab='Number of Nodes', ylab='Total utility'):
     '''
     Plot 1d data as histogram with labels along x axis
 
     :param data: 1-D array of data to graph
     :param label: labels along x axis
     :param dir: directory to save plot
+    :param title: Title of graph (string)
+    :param xlab: X label of graph (string)
+    :param ylab: y label of graph (string)
     :return: null
     '''
     index = range(len(data))
     plt.plot(index, data)
-    plt.xlabel('Number of Nodes')
-    plt.ylabel('Total utility in Percentage of Optimal')
-    # plt.ylabel('Time to compute optimal (seconds)')
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
     plt.xticks(index, label)
-    plt.title('U-D Heuristic: % of Optimal (Sampled)')
-    # plt.title('Time to Compute Optimal Configuration for Tree of Size N')
+    plt.title(title)
 
     plt.savefig(dir)
 
 
 def DP_optimal(G, independent_nodes, resources):
     '''
-    DP algorithm calculating optimal recovery utility
+    DP algorithm calculating optimal recovery utility. See paper for algorithm details.
 
     :param G: networkx graph with attributes "util" and "demand" for each node
     :param independent_nodes: already functional nodes of the problem, assumed to be list of nodes in G
