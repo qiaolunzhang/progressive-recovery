@@ -2,12 +2,13 @@ from deep_q_network import DeepQNetwork
 from rl_environment import environment
 import networkx as nx
 from graph_helper import r_graph, r_2d_graph, r_tree, get_root, DP_optimal, plot_graph, simulate_tree_recovery, \
-    plot_bar_x, read_gml, adv_graph, read_gml_adversarial
+    plot_bar_x, read_gml, adv_graph, read_gml_adversarial, gnp_adversarial
 import numpy as np
 from ratio_heuristic import ratio_heuristic
 from random_heuristic import random_heuristic
 import time
 import random
+import tensorflow as tf
 
 
 def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='random_tree'):
@@ -57,6 +58,11 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
         save = 'experiments/{0}_adv_graph.txt'.format('gml')
         real_node_num = len(graph)
 
+    elif type == 'gnp_adversarial':
+        graph = gnp_adversarial(nodes, utils, demands)
+        save = 'experiments/{0}_gnp_adv_graph.txt'.format(nodes)
+        real_node_num = nodes
+
     else:
         raise NotImplementedError
 
@@ -64,15 +70,15 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
     return graph, save, real_node_num
 
 
-def main():
+def runner(node_num):
     # Load checkpoint
     load_path = "weights/weights.ckpt"
     save_path = "weights/weights.ckpt"
 
     # Generate graph for training...
     resources = 1
-    # G, reward_save, num_nodes = generate_graph(nodes=20, type='adversarial')
-    G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
+    G, reward_save, num_nodes = generate_graph(nodes=node_num, type='gnp_adversarial')
+    # G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
 
     # Pick an arbitrary node to be the root
     root = 0
@@ -140,7 +146,7 @@ def main():
                 # action = env.random_action()
                 # now choose between truly random action and a ratio action
                 r = random.random()
-                if r < 0.8:
+                if r < 0.6:
                     action = env.random_action()
                 else:
                     action = env.ratio_action()
@@ -242,14 +248,18 @@ def main():
         _, r, d = env.step(action, debug=True)
         true_r += r
 
+    results = []
     # if we have a reasonable number of nodes (< 24), we can compute optimal using DP
     if num_nodes < 24:
         dp_time = time.time()
-        print("Optimal:", DP_optimal(G, [root], resources))
+        results.append(DP_optimal(G, [root], resources))
+        print('DP Opt: ', results[0])
         dp_time_end = time.time()
-        print('DP time:', dp_time_end - dp_time)
+        results.append(dp_time_end - dp_time)
+        print('DP time: ', results[1])
 
     print('\n Random Heuristic', random_heuristic(G, [root], resources), '\n')
+    results.append(random_heuristic(G, [root], resources))
 
     # Only works on trees
     # print('\n Tree Heuristic:', simulate_tree_recovery(G, resources, root, clean=False), '\n')
@@ -258,14 +268,29 @@ def main():
     print('\n Ratio Heuristic', ratio_heuristic(G, [root], resources))
     ratio_time_end = time.time()
     print('Ratio time:', ratio_time_end - ratio_time_start)
+    results.append(ratio_heuristic(G, [root], resources))
+    results.append(ratio_time_end - ratio_time_start)
 
     print('\n reward during training:', reward)
+    results.append(reward)
     print('RL method time (s): ', overall_end - overall_start, '\n')
+    results.append(overall_end - overall_start)
 
     plot_bar_x(rewards, 'episode', 'reward_graph.png')
     with open(reward_save, 'w') as f:
         for item in rewards:
             f.write('%s\n' % item)
+
+    return results
+
+
+def main():
+    all_res = []
+    for node_num in range(23, 35):
+        all_res.append(runner(node_num))
+        tf.reset_default_graph()
+
+    print(all_res)
 
 
 if __name__ == '__main__':

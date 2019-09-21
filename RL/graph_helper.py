@@ -37,13 +37,69 @@ def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
     return G
 
 
+def gnp_adversarial(n, util_range=[1, 4], demand_range=[1, 2], edge_prob=0.2, adv_node_util=10):
+    """
+    Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
+    with probability edge_prob. Guaranteed to be a connected graph.
+
+    :param n: number of nodes
+    :param util_range: range to generate random utility from (inclusive)
+    :param demand_range: range to generate random demand from (inclusive)
+    :param edge_prob: probability of adding an edge for a given pair of nodes
+    :param adv_node_util: Util of adversarial node
+    :return: Random random graph with util, demand set for each node.
+    """
+    G = nx.fast_gnp_random_graph(n, edge_prob)
+    # Remove edge between num_nodes - 2 and 0 if it exists
+    try:
+        G.remove_edge(0, n - 2)
+    except:
+        None
+
+    # guarantee G is connected
+    while not nx.is_connected(G):
+        G = nx.fast_gnp_random_graph(n, edge_prob)
+        # Remove edge between num_nodes - 2 and 0 if it exists
+        try:
+            G.remove_edge(0, n - 2)
+        except:
+            None
+
+    utils = {}
+    demand = {}
+
+    # random utils and demand for each node
+    for node in G.nodes:
+        utils.update({node: random.randint(util_range[0], util_range[1])})
+        demand.update({node: random.randint(demand_range[0], demand_range[1])})
+
+    # now we want to make a counter example node embedded somewhere within the graph
+    # all its neighbors have bad ratio.
+    num_nodes = G.number_of_nodes()
+    neighbors = G.neighbors(num_nodes - 2)
+    print('Adversarial node num: {0}'.format(num_nodes - 2))
+    utils.update({num_nodes - 2: adv_node_util})
+    demand.update({num_nodes - 2: demand_range[0]})
+    for node in neighbors:
+        utils.update({node: util_range[0]})
+        demand.update({node: demand_range[1]})
+
+    income = {utils[x] - demand[x] for x in utils}
+    nx.set_node_attributes(G, name='util', values=utils)
+    nx.set_node_attributes(G, name='demand', values=demand)
+    nx.set_node_attributes(G, name='income', values=income)
+
+    return G
+
+
 def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2]):
     """
+    Read a GML and insert an adversarial node in it to ruin the ratio heuristic.
 
-    :param DIR:
-    :param util_range:
-    :param demand_range:
-    :return:
+    :param DIR: Directory to read the file from
+    :param util_range: range of util for each node
+    :param demand_range: range of demand for each node
+    :return: G, where each node has util/demand values and there is an adversarial node
     """
 
     # first read_gml
