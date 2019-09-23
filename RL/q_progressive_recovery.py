@@ -77,8 +77,8 @@ def runner(node_num):
 
     # Generate graph for training...
     resources = 1
-    G, reward_save, num_nodes = generate_graph(nodes=node_num, type='gnp_adversarial')
-    # G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
+    # G, reward_save, num_nodes = generate_graph(nodes=node_num, type='gnp_adversarial')
+    G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
 
     # Pick an arbitrary node to be the root
     root = 0
@@ -120,7 +120,7 @@ def runner(node_num):
         # laplacian=flat_laplacian
     )
 
-    episodes = 500
+    episodes = 700
     rewards = []
     total_steps_counter = 0
     episodes_since_max = 0
@@ -257,6 +257,9 @@ def runner(node_num):
         dp_time_end = time.time()
         results.append(dp_time_end - dp_time)
         print('DP time: ', results[1])
+    else:
+        results.append('n/a')
+        results.append('n/a')
 
     print('\n Random Heuristic', random_heuristic(G, [root], resources), '\n')
     results.append(random_heuristic(G, [root], resources))
@@ -286,7 +289,7 @@ def runner(node_num):
 
 def main():
     all_res = []
-    for node_num in range(23, 35):
+    for node_num in range(5, 6):
         all_res.append(runner(node_num))
         tf.reset_default_graph()
 
