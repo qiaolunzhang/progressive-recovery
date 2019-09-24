@@ -47,7 +47,10 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
 
     # Read a normal gml file and randomly pick utils, demands
     elif type == 'gml':
-        graph = read_gml(load_dir, utils, demands)
+        # WARNING: Turn off fix_nodes_around_adv for normal use. This fixes the
+        # nodes adjacent to vertex(num_nodes - 2) to be bad for the ratio heuristic.
+        # For use in conjunction with 'gml_adversarial'.
+        graph = read_gml(load_dir, utils, demands, fix_nodes_around_adv=True)
         save = 'experiments/{0}.txt'.format('gml')
         real_node_num = len(graph)
 
@@ -78,7 +81,7 @@ def runner(node_num):
     # Generate graph for training...
     resources = 1
     # G, reward_save, num_nodes = generate_graph(nodes=node_num, type='gnp_adversarial')
-    G, reward_save, num_nodes = generate_graph(load_dir='../gml/DIGEX.gml', type='gml_adversarial')
+    G, reward_save, num_nodes = generate_graph(load_dir='../gml/ibm.gml', type='gml')
 
     # Pick an arbitrary node to be the root
     root = 0
@@ -114,13 +117,13 @@ def runner(node_num):
         batch_size=256,
         reward_decay=0.6,
         epsilon_min=0.1,
-        epsilon_greedy_decrement=1e-4,
+        epsilon_greedy_decrement=1e-5,
         # load_path=load_path,
         # save_path=save_path,
         # laplacian=flat_laplacian
     )
 
-    episodes = 700
+    episodes = 400
     rewards = []
     total_steps_counter = 0
     episodes_since_max = 0
@@ -289,11 +292,16 @@ def runner(node_num):
 
 def main():
     all_res = []
-    for node_num in range(5, 6):
+    for node_num in range(80, 81):
         all_res.append(runner(node_num))
         tf.reset_default_graph()
 
-    print(all_res)
+    # print all results formatted as csv
+    for node_num in all_res:
+        try:
+            print(node_num[0][0],',', node_num[1], ',', node_num[2],',',  node_num[3], ',', node_num[4],',',  node_num[5],',',  node_num[6])
+        except:
+            print(node_num[0],',',  node_num[1], ',', node_num[2],',',  node_num[3],',',  node_num[4])
 
 
 if __name__ == '__main__':

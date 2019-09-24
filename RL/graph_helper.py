@@ -4,17 +4,25 @@ import random
 import os, shutil
 import itertools
 import math
+import numpy as np
 
 
-def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
+def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2], seed=42, fix_nodes_around_adv=False):
     """
     Reads a networkx graph from a GML (Graph Markup Language) files, and assigns each node util + demand
 
     :param DIR: Directory to read the file from
     :param util_range: range of util for each node
     :param demand_range: range of demand for each node
+    :param seed: set random seed.
+    :param fix_nodes_around_adv: fix the nodes around the adversarial node to be the same when you call
+    the gml_adversarial function.
     :return: G, where each node has util/demand values
     """
+    # set seed
+    np.random.seed(seed)
+    random.seed(seed)
+
     G = nx.read_gml(DIR)
     G = nx.convert_node_labels_to_integers(G)
     print('reading {0}, num_nodes = '.format(DIR), len(G))
@@ -29,6 +37,14 @@ def read_gml(DIR, util_range=[1, 4], demand_range=[1, 2]):
         utils.update({node: random.randint(util_range[0], util_range[1])})
         demand.update({node: random.randint(demand_range[0], demand_range[1])})
         income.update({node: utils[node] - demand[node]})
+
+    if fix_nodes_around_adv:
+        num_nodes = G.number_of_nodes()
+        neighbors = G.neighbors(num_nodes - 2)
+        for node in neighbors:
+            utils.update({node: util_range[0]})
+            demand.update({node: demand_range[1]})
+        income = {utils[x] - demand[x] for x in utils}
 
     nx.set_node_attributes(G, name='util', values=utils)
     nx.set_node_attributes(G, name='demand', values=demand)
@@ -92,15 +108,19 @@ def gnp_adversarial(n, util_range=[1, 4], demand_range=[1, 2], edge_prob=0.2, ad
     return G
 
 
-def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2]):
+def read_gml_adversarial(DIR, util_range=[1, 4], demand_range=[1, 2], seed=42):
     """
     Read a GML and insert an adversarial node in it to ruin the ratio heuristic.
 
     :param DIR: Directory to read the file from
     :param util_range: range of util for each node
     :param demand_range: range of demand for each node
+    :param seed: random seed
     :return: G, where each node has util/demand values and there is an adversarial node
     """
+    # set random seed
+    np.random.seed(seed)
+    random.seed(seed)
 
     # first read_gml
     G = nx.read_gml(DIR)
