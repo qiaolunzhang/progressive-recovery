@@ -36,8 +36,7 @@ class DeepQNetwork:
             reward_decay=0.9,
             load_path=None,
             save_path=None,
-            inner_act_func = 'relu',
-            output_act_func = 'relu'
+            laplacian=None
     ):
 
         # n_y is action space
@@ -55,8 +54,7 @@ class DeepQNetwork:
         self.batch_size = batch_size
         self.reward_decay = reward_decay  # this is gamma
         self.save_path = save_path
-        self.inner_act_func = inner_act_func
-        self.output_act_func = output_act_func
+        self.laplacian = laplacian
 
         self.memory_counter = 0
         self.learn_step_counter = 0
@@ -223,37 +221,14 @@ class DeepQNetwork:
             # First layer
             with tf.variable_scope('layer_1'):
                 Z1 = tf.matmul(W1, self.X) + b1
-                if self.inner_act_func == 'relu':
-                    A1 = tf.nn.relu(Z1)
-                elif self.inner_act_func == 'leaky_relu':
-                    A1 = tf.nn.leaky_relu(Z1)
-                else:
-                    raise NotImplementedError
-
+                A1 = tf.nn.relu(Z1)
             # Second layer
             with tf.variable_scope('layer_2'):
                 Z2 = tf.matmul(W2, A1) + b2
-                if self.inner_act_func == 'relu':
-                    A2 = tf.nn.relu(Z2)
-                elif self.inner_act_func == 'leaky_relu':
-                    A2 = tf.nn.leaky_relu(Z2)
-                else:
-                    raise NotImplementedError
-
+                A2 = tf.nn.relu(Z2)
             # Output layer
             with tf.variable_scope('layer_3'):
                 Z3 = tf.matmul(W3, A2) + b3
-                if self.output_act_func == 'relu':
-                    Z3 = tf.nn.relu(Z3)
-                elif self.output_act_func == 'leaky_relu':
-                    Z3 = tf.nn.leaky_relu(Z3)
-                elif self.output_act_func == 'softmax':
-                    Z3 = tf.nn.softmax(Z3)
-                elif self.output_act_func == 'tanh':
-                    Z3 = tf.nn.tanh(Z3)
-                else:
-                    raise NotImplementedError
-
                 self.q_eval_outputs = Z3
 
         with tf.variable_scope('loss'):
@@ -280,39 +255,16 @@ class DeepQNetwork:
 
             # First layer
             with tf.variable_scope('layer_1'):
-                Z1 = tf.matmul(W1, self.X) + b1
-                if self.inner_act_func == 'relu':
-                    A1 = tf.nn.relu(Z1)
-                elif self.inner_act_func == 'leaky_relu':
-                    A1 = tf.nn.leaky_relu(Z1)
-                else:
-                    raise NotImplementedError
-
+                Z1 = tf.matmul(W1, self.X_) + b1
+                A1 = tf.nn.relu(Z1)
             # Second layer
             with tf.variable_scope('layer_2'):
                 Z2 = tf.matmul(W2, A1) + b2
-                if self.inner_act_func == 'relu':
-                    A2 = tf.nn.relu(Z2)
-                elif self.inner_act_func == 'leaky_relu':
-                    A2 = tf.nn.leaky_relu(Z2)
-                else:
-                    raise NotImplementedError
-
+                A2 = tf.nn.relu(Z2)
             # Output layer
             with tf.variable_scope('layer_3'):
                 Z3 = tf.matmul(W3, A2) + b3
-                if self.output_act_func == 'relu':
-                    Z3 = tf.nn.relu(Z3)
-                elif self.output_act_func == 'leaky_relu':
-                    Z3 = tf.nn.leaky_relu(Z3)
-                elif self.output_act_func == 'softmax':
-                    Z3 = tf.nn.softmax(Z3)
-                elif self.output_act_func == 'tanh':
-                    Z3 = tf.nn.tanh(Z3)
-                else:
-                    raise NotImplementedError
-
-                self.q_eval_outputs = Z3
+                self.q_next_outputs = Z3
 
     def plot_cost(self):
         import matplotlib
