@@ -187,7 +187,7 @@ def r_tree(nodes, util_range=[1, 4], demand_range=[1, 2], height=None):
     return G
 
 
-def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
+def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2], seed=None):
     """
     Generates a random graph with n nodes, adding an edge between pairs of nodes randomly
     with probability edge_prob. Guaranteed to be a connected graph.
@@ -198,6 +198,11 @@ def r_graph(n, edge_prob, util_range=[1, 4], demand_range=[1, 2]):
     :param demand_range: range to generate random demand from (inclusive)
     :return: Random random graph with util, demand set for each node.
     """
+    if seed:
+        # set random seed
+        np.random.seed(seed)
+        random.seed(seed)
+
     G = nx.fast_gnp_random_graph(n, edge_prob)
 
     # guarantee G is connected

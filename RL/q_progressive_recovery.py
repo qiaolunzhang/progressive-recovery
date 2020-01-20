@@ -11,7 +11,7 @@ import random
 import tensorflow as tf
 
 
-def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='random_tree'):
+def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='random_tree', seed=None):
     # Generate random tree
     if type == 'random_tree':
         if load_dir:
@@ -26,7 +26,7 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
         if load_dir:
             graph = nx.read_gpickle('experiments/{0}_rgraph.gpickle'.format(nodes))
         else:
-            graph = r_graph(nodes, 0.2, utils, demands)
+            graph = r_graph(nodes, 0.2, utils, demands, seed)
         save = 'experiments/{0}_rgraph.txt'.format(nodes)
         real_node_num = nodes
 
@@ -50,7 +50,7 @@ def generate_graph(nodes=20, utils=[1, 4], demands=[1, 2], load_dir=None, type='
         # WARNING: Turn off fix_nodes_around_adv for normal use. This fixes the
         # nodes adjacent to vertex(num_nodes - 2) to be bad for the ratio heuristic.
         # For use in conjunction with 'gml_adversarial'.
-        graph = read_gml(load_dir, utils, demands, fix_nodes_around_adv=True)
+        graph = read_gml(load_dir, utils, demands, fix_nodes_around_adv=False)
         save = 'experiments/{0}.txt'.format('gml')
         real_node_num = len(graph)
 
@@ -78,10 +78,16 @@ def runner(node_num):
     load_path = "weights/weights.ckpt"
     save_path = "weights/weights.ckpt"
 
+    # set seed
+    seed = 42
+    np.random.seed(seed)
+    random.seed(seed)
+
     # Generate graph for training...
     resources = 1
     # G, reward_save, num_nodes = generate_graph(nodes=node_num, type='gnp_adversarial')
-    G, reward_save, num_nodes = generate_graph(load_dir='../gml/ibm.gml', type='gml')
+    # G, reward_save, num_nodes = generate_graph(load_dir='../gml/ibm.gml', type='gml')
+    G, reward_save, num_nodes = generate_graph(nodes=node_num, type='random_graph', seed=42)
 
     # Pick an arbitrary node to be the root
     root = 0
@@ -117,13 +123,15 @@ def runner(node_num):
         batch_size=256,
         reward_decay=0.6,
         epsilon_min=0.1,
-        epsilon_greedy_decrement=1e-5,
+        epsilon_greedy_decrement=5e-5,
         # load_path=load_path,
         # save_path=save_path,
-        # laplacian=flat_laplacian
+        # laplacian=flat_laplacian,
+        inner_act_func='leaky_relu',
+        output_act_func='leaky_relu'
     )
 
-    episodes = 400
+    episodes = 600
     rewards = []
     total_steps_counter = 0
     episodes_since_max = 0
@@ -292,7 +300,7 @@ def runner(node_num):
 
 def main():
     all_res = []
-    for node_num in range(80, 81):
+    for node_num in range(20, 21):
         all_res.append(runner(node_num))
         tf.reset_default_graph()
 

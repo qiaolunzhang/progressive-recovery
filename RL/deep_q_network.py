@@ -36,7 +36,9 @@ class DeepQNetwork:
             reward_decay=0.9,
             load_path=None,
             save_path=None,
-            laplacian=None
+            laplacian=None,
+            inner_act_func='relu',
+            output_act_func='relu'
     ):
 
         # n_y is action space
@@ -55,6 +57,8 @@ class DeepQNetwork:
         self.reward_decay = reward_decay  # this is gamma
         self.save_path = save_path
         self.laplacian = laplacian
+        self.inner_act_func = inner_act_func
+        self.output_act_func = output_act_func
 
         self.memory_counter = 0
         self.learn_step_counter = 0
@@ -249,6 +253,8 @@ class DeepQNetwork:
                         Z3 = tf.nn.softmax(Z3)
                     elif self.output_act_func == 'tanh':
                         Z3 = tf.nn.tanh(Z3)
+                    elif self.output_act_func is None:
+                        Z3 = Z3
                     else:
                         raise NotImplementedError
 
@@ -307,10 +313,12 @@ class DeepQNetwork:
                         Z3 = tf.nn.softmax(Z3)
                     elif self.output_act_func == 'tanh':
                         Z3 = tf.nn.tanh(Z3)
+                    elif self.output_act_func is None:
+                        Z3 = Z3
                     else:
                         raise NotImplementedError
 
-                    self.q_eval_outputs = Z3
+                    self.q_next_outputs = Z3
 
     def plot_cost(self):
         import matplotlib
