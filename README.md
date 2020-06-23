@@ -37,6 +37,14 @@ and ``demand_range=[1,4]`` for simplicity and training time, but these values ma
 by the user.
 
 ## Citation
-If you found our code to be useful, please consider citing our work:
-
-_To appear at IEEE Globecom 2019_
+If you found our code to be useful, please consider citing our work.
+```
+@ARTICLE{9109575,
+  author={G. {Ishigaki} and S. {Devic} and R. {Gour} and J. P. {Jue}},
+  journal={IEEE Journal on Selected Areas in Communications}, 
+  title={DeepPR: Progressive Recovery for Interdependent VNFs with Deep Reinforcement Learning}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={1-1},}
+```
