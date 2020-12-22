@@ -6,10 +6,13 @@ The increasing reliance upon cloud services entails more flexible networks that 
 [arXiv](https://arxiv.org/abs/1904.11533)
 
 ## Dependencies
+* We can first install python3.7, then instal the following
+
 * tensorflow 1.11.0 (anything before 2.0 should work)
 * numpy 1.15.2
 * networkx 2.2
 * matplotlib 3.0
+
 
 ## Instructions
 To run our reinforcement learning implementation, simply run:
